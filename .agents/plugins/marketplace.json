@@ -1,0 +1,16 @@
+{
+  "name": "llm-wiki-marketplace",
+  "interface": {
+    "displayName": "llm-wiki Marketplace"
+  },
+  "plugins": [
+    {
+      "name": "agent-msg",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/agent-msg"
+      },
+      "description": "Cross-harness live messaging: list and message Claude Code and Codex sessions on the same machine."
+    }
+  ]
+}

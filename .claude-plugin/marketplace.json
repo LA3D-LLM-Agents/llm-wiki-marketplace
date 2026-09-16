@@ -1,0 +1,17 @@
+{
+  "name": "llm-wiki-marketplace",
+  "owner": {
+    "name": "LA3D-LLM-Agents",
+    "url": "https://github.com/LA3D-LLM-Agents"
+  },
+  "metadata": {
+    "description": "Marketplace of llm-wiki-family plugins for Claude Code and Codex."
+  },
+  "plugins": [
+    {
+      "name": "agent-msg",
+      "source": "./claude/plugins/agent-msg",
+      "description": "Cross-harness live messaging: list and message Claude Code and Codex sessions on the same machine."
+    }
+  ]
+}

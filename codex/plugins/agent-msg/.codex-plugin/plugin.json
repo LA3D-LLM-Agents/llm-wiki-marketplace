@@ -1,0 +1,9 @@
+{
+  "name": "agent-msg",
+  "version": "0.1.0",
+  "description": "Cross-harness live messaging: list and message Claude Code and Codex sessions on the same machine.",
+  "author": {
+    "name": "LA3D-LLM-Agents",
+    "url": "https://github.com/LA3D-LLM-Agents"
+  }
+}
