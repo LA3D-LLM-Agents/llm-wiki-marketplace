@@ -9,6 +9,23 @@ recipient (a pop-up for a live Claude session, a queued turn for Codex).
 The agent-facing usage is in `skills/wiki-agent-msg/SKILL.md`; this file is the
 human reference.
 
+## Using it
+
+After installing, activate the plugin with `/reload-plugins` (Claude Code) or a
+restart (Codex). Then use it either way:
+
+- **Just ask (recommended).** The skill is model-invocable, so a plain request
+  triggers it, no slash needed:
+  - "List the agent sessions on this machine."
+  - "Message the prism_synthesis session: build passed."
+  - "Tell sat_codex_wiki the run is done."
+  Claude or Codex runs the matching script and reports the result.
+- **Explicit slash command.** `/wiki-agent-msg:wiki-agent-msg` (that is
+  `plugin-name:skill-name`) forces it on Claude Code.
+
+An agent can also invoke it on its own mid-task, for example notifying a peer
+when a job finishes.
+
 ## Commands
 
 ```bash

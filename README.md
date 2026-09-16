@@ -36,6 +36,20 @@ Codex requires a restart after a plugin change. Codex updates are keyed on the
 plugin's manifest version, not the commit, so a release only reaches Codex users
 when that version is bumped.
 
+## Activate and use
+
+Plugins register at **session start**, so after installing, activate them with
+`/reload-plugins` (Claude Code) or a restart (Codex), otherwise the new skill
+will not appear in the running session. Then invoke a plugin two ways:
+
+- **Ask in natural language** — skills are model-invocable, so a plain request
+  runs them (e.g. "list the agent sessions", "message <session>: <text>").
+- **Slash command** — `/<plugin-name>:<skill-name>` on Claude Code (for this
+  marketplace's plugin, `/wiki-agent-msg:wiki-agent-msg`).
+
+See each plugin's own README for its usage (e.g.
+[`plugins/wiki-agent-msg/README.md`](plugins/wiki-agent-msg/README.md)).
+
 ## Update
 
 ### Claude Code
