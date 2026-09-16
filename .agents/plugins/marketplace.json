@@ -5,10 +5,10 @@
   },
   "plugins": [
     {
-      "name": "agent-msg",
+      "name": "wiki-agent-msg",
       "source": {
         "source": "local",
-        "path": "./codex/plugins/agent-msg"
+        "path": "./plugins/wiki-agent-msg"
       },
       "description": "Cross-harness live messaging: list and message Claude Code and Codex sessions on the same machine."
     }

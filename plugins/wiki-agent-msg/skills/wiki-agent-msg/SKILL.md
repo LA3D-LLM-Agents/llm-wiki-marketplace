@@ -1,17 +1,18 @@
 ---
-name: agent-msg
+name: wiki-agent-msg
 description: List and message coding-agent sessions across Claude Code and Codex on this machine. Use to see which agents are running and to send a message to one.
-disable-model-invocation: true
 ---
 
-You operate the cross-harness messaging tool: two scripts under `${CLAUDE_SKILL_DIR}/scripts/`. It lists sessions from both harnesses and sends a message to one, routed by the target's platform. Same machine only; a message just appears in the recipient (a pop-up for a live Claude session, a queued turn for Codex).
+You operate the cross-harness messaging tool: two scripts under the skill's `scripts/` directory. It lists sessions from both harnesses and sends a message to one, routed by the target's platform. Same machine only; a message just appears in the recipient (a pop-up for a live Claude session, a queued turn for Codex).
+
+`${CLAUDE_SKILL_DIR:-$SKILL_DIRECTORY}` resolves to this skill's directory on both Claude Code (`CLAUDE_SKILL_DIR`) and Codex (`SKILL_DIRECTORY`).
 
 The user's input is: `$ARGUMENTS`
 
 ## List agents
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/agents-list.sh"
+bash "${CLAUDE_SKILL_DIR:-$SKILL_DIRECTORY}/scripts/agents-list.sh"
 ```
 
 Prints one row per agent, tagged by platform (`claude` / `codex`), with its id, name, cwd, and status. Live Claude sessions come from `claude agents --json`; recent Codex sessions from `~/.codex/sessions`. Add `--tsv` for machine-readable output.
@@ -19,7 +20,7 @@ Prints one row per agent, tagged by platform (`claude` / `codex`), with its id, 
 ## Send a message
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/agents-send.sh" <target> "<message>"
+bash "${CLAUDE_SKILL_DIR:-$SKILL_DIRECTORY}/scripts/agents-send.sh" <target> "<message>"
 ```
 
 `<target>` matches an agent by exact id, exact name, or a substring of its name or cwd (resolved against the list; ambiguous matches print candidates). Dispatch is by the **target's** platform:

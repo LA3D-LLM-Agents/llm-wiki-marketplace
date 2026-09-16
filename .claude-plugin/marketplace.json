@@ -9,8 +9,8 @@
   },
   "plugins": [
     {
-      "name": "agent-msg",
-      "source": "./claude/plugins/agent-msg",
+      "name": "wiki-agent-msg",
+      "source": "./plugins/wiki-agent-msg",
       "description": "Cross-harness live messaging: list and message Claude Code and Codex sessions on the same machine."
     }
   ]
