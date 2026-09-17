@@ -16,11 +16,12 @@ no build step**, unlike a plugin set whose hooks differ per harness.
 |---|---|
 | **wiki-agent-msg** | List and message coding-agent sessions across Claude Code and Codex on the same machine. `agents-list` shows every running agent tagged by platform; `agents-send <target> "<msg>"` routes by the target's platform (Codex -> `codex queue`; Claude -> a `claude -p` relay that calls `SendMessage`). |
 | **wiki-kg** | Build and query a typed-edge knowledge graph from an llm-wiki. `build-graph.sh` materializes frontmatter + body links as RDF (rdflib + pyshacl, in-process, no server; venv self-bootstraps on first run); `query-graph.sh <name>` runs a curated SPARQL query (hubs, orphans, ancestors, extension chains, supports/criticizes). |
+| **wiki-graph-viz** | Render a wiki's knowledge graph as a self-contained interactive HTML map for navigation. Reads `wiki-kg`'s `graph.jsonld` and emits a force-directed node-link map (color by type, size by degree, type filter, edge-type toggles, search, drag, zoom); click a node to open its GitHub wiki page. Pure stdlib, no venv. |
 
 ## Install
 
 Add the marketplace once, then install any plugin from the table above.
-Replace `<plugin>` with a plugin name (`wiki-agent-msg`, `wiki-kg`).
+Replace `<plugin>` with a plugin name (`wiki-agent-msg`, `wiki-kg`, `wiki-graph-viz`).
 
 ### Claude Code
 
@@ -49,11 +50,12 @@ will not appear in the running session. Then invoke a plugin two ways:
 - **Ask in natural language** — skills are model-invocable, so a plain request
   runs them (e.g. "list the agent sessions", "message <session>: <text>").
 - **Slash command** — `/<plugin-name>:<skill-name>` on Claude Code (e.g.
-  `/wiki-agent-msg:wiki-agent-msg`, `/wiki-kg:wiki-kg`).
+  `/wiki-agent-msg:wiki-agent-msg`, `/wiki-kg:wiki-kg`, `/wiki-graph-viz:wiki-graph-viz`).
 
 See each plugin's own README for its usage:
 [`wiki-agent-msg`](plugins/wiki-agent-msg/README.md),
-[`wiki-kg`](plugins/wiki-kg/README.md).
+[`wiki-kg`](plugins/wiki-kg/README.md),
+[`wiki-graph-viz`](plugins/wiki-graph-viz/README.md).
 
 ## Update
 

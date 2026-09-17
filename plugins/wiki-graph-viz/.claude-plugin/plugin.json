@@ -1,0 +1,9 @@
+{
+  "name": "wiki-graph-viz",
+  "version": "0.1.0",
+  "description": "Render a wiki knowledge graph as a self-contained interactive HTML map for navigation (click a page to open its GitHub wiki page).",
+  "author": {
+    "name": "LA3D-LLM-Agents",
+    "url": "https://github.com/LA3D-LLM-Agents"
+  }
+}

@@ -17,6 +17,11 @@
       "name": "wiki-kg",
       "source": "./plugins/wiki-kg",
       "description": "Build and query a typed-edge knowledge graph from an llm-wiki (rdflib + pyshacl, in-process; no server)."
+    },
+    {
+      "name": "wiki-graph-viz",
+      "source": "./plugins/wiki-graph-viz",
+      "description": "Render a wiki knowledge graph as a self-contained interactive HTML map for navigation (click a page to open its GitHub wiki page)."
     }
   ]
 }
