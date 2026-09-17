@@ -1,6 +1,6 @@
 {
   "name": "wiki-kg",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Build, query, and visualize a typed-edge knowledge graph from an llm-wiki (rdflib + pyshacl, in-process; interactive Cytoscape map; no server).",
   "author": {
     "name": "LA3D-LLM-Agents",

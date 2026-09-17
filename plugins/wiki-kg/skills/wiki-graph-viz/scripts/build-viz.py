@@ -166,7 +166,7 @@ TEMPLATE = r"""<!doctype html>
   .row{ display:flex; align-items:center; gap:6px; padding:2px 0; font-size:12.5px; cursor:pointer; user-select:none; }
   .row input{ margin:0; } .sw{ width:11px; height:11px; border-radius:3px; flex:0 0 11px; }
   #cy{ flex:1; height:100%; background:var(--bg); }
-  #tip{ position:absolute; pointer-events:none; background:var(--panel); border:1px solid var(--line); border-radius:6px;
+  #tip{ position:fixed; pointer-events:none; background:var(--panel); border:1px solid var(--line); border-radius:6px;
         padding:6px 8px; font-size:12px; max-width:240px; box-shadow:0 4px 14px rgba(0,0,0,.18); display:none; z-index:5; }
   #tip b{ display:block; } #tip .t{ color:var(--muted); }
   button{ font:inherit; padding:5px 9px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); cursor:pointer; }
@@ -245,11 +245,18 @@ cy.on('tap','node', evt=>{ const u=evt.target.data('url'); if(u) window.open(u,'
 
 // tooltip
 const tip=document.getElementById('tip');
+// Right-justified against the cursor (viewport coords), so the tooltip's near
+// edge is always ~gap px from the pointer regardless of name length.
+function placeTip(e){ const gap=14;
+  tip.style.left='auto';
+  tip.style.right=(window.innerWidth - e.clientX + gap)+'px';
+  tip.style.top=(e.clientY + gap)+'px';
+}
 cy.on('mouseover','node', evt=>{ const d=evt.target.data();
-  tip.style.display='block';
-  tip.innerHTML="<b>"+esc(d.label)+"</b><span class='t'>"+esc(d.type)+" &middot; deg "+d.deg+"</span>"+(d.url?"<br><span class='t'>click to open</span>":""); });
+  tip.innerHTML="<b>"+esc(d.label)+"</b><span class='t'>"+esc(d.type)+" &middot; deg "+d.deg+"</span>"+(d.url?"<br><span class='t'>click to open</span>":"");
+  tip.style.display='block'; if(evt.originalEvent) placeTip(evt.originalEvent); });
 cy.on('mouseout','node', ()=> tip.style.display='none');
-cy.on('mousemove', evt=>{ if(tip.style.display==='block'){ tip.style.left=(evt.renderedPosition.x+14)+'px'; tip.style.top=(evt.renderedPosition.y+14)+'px'; }});
+cy.on('mousemove', evt=>{ if(tip.style.display==='block' && evt.originalEvent) placeTip(evt.originalEvent); });
 function esc(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
 
 // filters
