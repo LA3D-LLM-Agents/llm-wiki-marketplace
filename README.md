@@ -19,18 +19,21 @@ no build step**, unlike a plugin set whose hooks differ per harness.
 
 ## Install
 
+Add the marketplace once, then install any plugin from the table above.
+Replace `<plugin>` with a plugin name (`wiki-agent-msg`, `wiki-kg`).
+
 ### Claude Code
 
 ```
 /plugin marketplace add LA3D-LLM-Agents/llm-wiki-marketplace
-/plugin install wiki-agent-msg@llm-wiki-marketplace
+/plugin install <plugin>@llm-wiki-marketplace
 ```
 
 ### Codex
 
 ```
 codex plugin marketplace add LA3D-LLM-Agents/llm-wiki-marketplace
-codex plugin add wiki-agent-msg@llm-wiki-marketplace
+codex plugin add <plugin>@llm-wiki-marketplace
 ```
 
 Codex requires a restart after a plugin change. Codex updates are keyed on the
@@ -45,41 +48,46 @@ will not appear in the running session. Then invoke a plugin two ways:
 
 - **Ask in natural language** — skills are model-invocable, so a plain request
   runs them (e.g. "list the agent sessions", "message <session>: <text>").
-- **Slash command** — `/<plugin-name>:<skill-name>` on Claude Code (for this
-  marketplace's plugin, `/wiki-agent-msg:wiki-agent-msg`).
+- **Slash command** — `/<plugin-name>:<skill-name>` on Claude Code (e.g.
+  `/wiki-agent-msg:wiki-agent-msg`, `/wiki-kg:wiki-kg`).
 
-See each plugin's own README for its usage (e.g.
-[`plugins/wiki-agent-msg/README.md`](plugins/wiki-agent-msg/README.md)).
+See each plugin's own README for its usage:
+[`wiki-agent-msg`](plugins/wiki-agent-msg/README.md),
+[`wiki-kg`](plugins/wiki-kg/README.md).
 
 ## Update
+
+Update the marketplace, then the specific plugin (`<plugin>` = any installed one).
 
 ### Claude Code
 
 ```
 claude plugin marketplace update llm-wiki-marketplace
-claude plugin update wiki-agent-msg@llm-wiki-marketplace
+claude plugin update <plugin>@llm-wiki-marketplace
 ```
 
 ### Codex
 
 ```
 codex plugin marketplace upgrade
-codex plugin add wiki-agent-msg@llm-wiki-marketplace
+codex plugin add <plugin>@llm-wiki-marketplace
 ```
 
 ## Uninstall
 
+Remove a single plugin, or the whole marketplace (the `marketplace remove` line).
+
 ### Claude Code
 
 ```
-/plugin uninstall wiki-agent-msg@llm-wiki-marketplace
+/plugin uninstall <plugin>@llm-wiki-marketplace
 /plugin marketplace remove llm-wiki-marketplace
 ```
 
 ### Codex
 
 ```
-codex plugin remove wiki-agent-msg@llm-wiki-marketplace
+codex plugin remove <plugin>@llm-wiki-marketplace
 codex plugin marketplace remove llm-wiki-marketplace
 ```
 
