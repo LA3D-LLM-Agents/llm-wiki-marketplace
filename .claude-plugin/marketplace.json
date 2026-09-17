@@ -12,6 +12,11 @@
       "name": "wiki-agent-msg",
       "source": "./plugins/wiki-agent-msg",
       "description": "Cross-harness live messaging: list and message Claude Code and Codex sessions on the same machine."
+    },
+    {
+      "name": "wiki-kg",
+      "source": "./plugins/wiki-kg",
+      "description": "Build and query a typed-edge knowledge graph from an llm-wiki (rdflib + pyshacl, in-process; no server)."
     }
   ]
 }

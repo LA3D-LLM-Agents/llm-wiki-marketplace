@@ -15,6 +15,7 @@ no build step**, unlike a plugin set whose hooks differ per harness.
 | Plugin | What it does |
 |---|---|
 | **wiki-agent-msg** | List and message coding-agent sessions across Claude Code and Codex on the same machine. `agents-list` shows every running agent tagged by platform; `agents-send <target> "<msg>"` routes by the target's platform (Codex -> `codex queue`; Claude -> a `claude -p` relay that calls `SendMessage`). |
+| **wiki-kg** | Build and query a typed-edge knowledge graph from an llm-wiki. `build-graph.sh` materializes frontmatter + body links as RDF (rdflib + pyshacl, in-process, no server; venv self-bootstraps on first run); `query-graph.sh <name>` runs a curated SPARQL query (hubs, orphans, ancestors, extension chains, supports/criticizes). |
 
 ## Install
 

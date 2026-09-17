@@ -1,0 +1,9 @@
+{
+  "name": "wiki-kg",
+  "version": "0.1.0",
+  "description": "Build and query a typed-edge knowledge graph from an llm-wiki (rdflib + pyshacl, in-process; no server).",
+  "author": {
+    "name": "LA3D-LLM-Agents",
+    "url": "https://github.com/LA3D-LLM-Agents"
+  }
+}
