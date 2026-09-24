@@ -245,6 +245,51 @@ class Catalog:
                 connection.pop("auth_profile", None)
         return config
 
+    def graph_view(self):
+        """Public resource/capability projection of the materialized RDF graph."""
+        nodes, edges = [], []
+        for node in sorted(self.graph.subjects(RDF.type, ECO.Connector), key=str):
+            resource_id = str(self.graph.value(node, FAB.resourceId))
+            nodes.append(
+                {
+                    "data": {
+                        "id": str(node),
+                        "resource_id": resource_id,
+                        "label": str(self.graph.value(node, RDFS.label)),
+                        "type": "resource",
+                        "kind": str(self.graph.value(node, FAB.kind)),
+                    }
+                }
+            )
+            for capability in sorted(self.graph.objects(node, ECO.hasCapability), key=str):
+                nodes.append(
+                    {
+                        "data": {
+                            "id": str(capability),
+                            "resource_id": resource_id,
+                            "label": str(self.graph.value(capability, RDFS.label)),
+                            "type": "capability",
+                        }
+                    }
+                )
+                edges.append(
+                    {
+                        "data": {
+                            "id": str(capability) + ":provided-by",
+                            "source": str(node),
+                            "target": str(capability),
+                            "predicate": str(ECO.hasCapability),
+                            "label": "provides",
+                        }
+                    }
+                )
+        return {
+            "revision": self.revision,
+            "nodes": nodes,
+            "edges": edges,
+            "projection": "Resource and capability relationships; resource-scoped capabilities are not semantic equivalence claims.",
+        }
+
     def snapshot(self):
         return {
             "revision": self.revision,

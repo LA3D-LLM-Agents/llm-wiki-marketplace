@@ -18,6 +18,7 @@ def main():
     parser.add_argument("--public-host", default="fabric.crc.nd.edu")
     parser.add_argument("--discovery-url", default=os.environ.get("FABRIC_DISCOVERY_URL"))
     parser.add_argument("--policy", default=os.environ.get("FABRIC_CLIENT_POLICY"))
+    parser.add_argument("--agent-store", default=os.environ.get("FABRIC_AGENT_STORE", ":memory:"))
     args = parser.parse_args()
     if args.command == "connectors" and args.transport != "stdio":
         parser.error("Direct connectors must remain local (stdio)")
@@ -42,12 +43,15 @@ def main():
             from .servers import connector_server, discovery_server
 
             if args.command == "serve":
+                from .agents import AgentRegistry
+
                 server = discovery_server(
                     catalog,
                     http=args.transport == "streamable-http",
                     host=args.host,
                     port=args.port,
                     public_host=args.public_host,
+                    agents=AgentRegistry(args.agent_store),
                 )
             else:
                 server = connector_server(catalog)

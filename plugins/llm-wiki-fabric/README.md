@@ -1,6 +1,6 @@
 # llm-wiki-fabric
 
-Version 0.5.0, shared by Codex and Claude Code.
+Version 0.6.0, shared by Codex and Claude Code.
 
 Discovery uses https://fabric.crc.nd.edu/mcp. The local connector calls fabric_catalog through the same MCP endpoint at startup; resource metadata, SQL destination and SSH routing
 come from descriptors. No client resource catalog is installed or read.
@@ -48,7 +48,7 @@ catalog changes; there is no background refresh or identity verification.
 
 ## Maintenance
 
-Runtime provenance is recorded in runtime/UPSTREAM.json (upstream fa5fcb9).
+Runtime provenance is recorded in runtime/UPSTREAM.json (upstream a431949).
 Both manifests use the same release. Validate the plugin and run:
 
 ```sh
@@ -60,3 +60,17 @@ The smoke test initializes discovery and connectors; it does not query data.
 All descriptors, dictionaries and routing are transported through MCP. There is
 no HTTP catalog download or fallback; /catalog.json is removed. /healthz is
 reserved for operational monitoring and carries no resource descriptors.
+
+## Agent announcements (0.6.0)
+
+The shared skill now calls `fabric_announce` before discovery when the project has
+an enrolled wiki card. It reuses the returned private session ID on discovery
+calls; missing cards or announcement failures do not block queries. Update the
+plugin and start a new conversation to load these instructions in Codex or Claude
+Code. This release's announcement behavior requires no credential/policy changes.
+
+The hosted dashboard displays announced agents, recent sessions and observed
+resource-discovery edges. Activity survives container restarts and expires after
+seven days without a call. The server resolves public metadata from the federation
+index and distinguishes membership from caller authentication. Direct queries
+remain between the client and resource; query text/results are not reported.

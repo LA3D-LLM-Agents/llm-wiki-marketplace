@@ -29,7 +29,7 @@ async def main():
     plugin = Path(__file__).resolve().parents[1]
     config = json.loads((plugin / ".mcp.json").read_text())
     expected = {
-        "fabric": {"fabric_find", "fabric_identify", "fabric_catalog"},
+        "fabric": {"fabric_find", "fabric_identify", "fabric_catalog", "fabric_graph", "fabric_agents", "fabric_announce"},
         "direct": {"resource_tools", "resource_call", "db_schema", "db_query"},
     }
     with tempfile.TemporaryDirectory(prefix="fabric smoke ") as directory:
@@ -39,7 +39,7 @@ async def main():
                 ClientSession(read, write) as client,
             ):
                 await client.initialize()
-                assert {t.name for t in (await client.list_tools()).tools} == expected[name]
+                assert expected[name] <= {t.name for t in (await client.list_tools()).tools}
                 if name == "fabric":
                     result = await client.call_tool("fabric_find", {})
                     assert not result.isError

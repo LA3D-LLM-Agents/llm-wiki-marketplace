@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore the knowledge fabric's resources, capabilities and published descriptors.">
+  <title>Fabric · Resource explorer</title>
+  <link rel="stylesheet" href="/dashboard/style.css">
+  <script defer src="/dashboard/vendor/cytoscape.min.js"></script>
+  <script defer src="/dashboard/app.js"></script>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="/" aria-label="Fabric home"><span class="brand-mark" aria-hidden="true">F</span> fabric<span class="brand-divider">/</span><span class="brand-context">Resource explorer</span></a><span class="host">fabric.crc.nd.edu</span></header>
+  <main>
+    <div class="page-heading"><div><p class="eyebrow">KNOWLEDGE FABRIC</p><h1>Explore the network</h1></div><button id="refresh" class="primary" type="button">Refresh view <span aria-hidden="true">↻</span></button></div>
+    <div class="summary" aria-label="Catalog summary"><div><span id="resource-count" class="number">—</span><span>Resources</span></div><div><span id="capability-count" class="number">—</span><span>Capability nodes</span></div><div><span id="revision" class="revision">—</span><span>Catalog revision</span></div><div><span id="agent-count" class="number">—</span><span>Announced agents</span></div><div class="summary-status"><strong id="connection-status">Connecting to fabric…</strong><span id="loaded-at">Descriptors via MCP</span></div></div>
+    <div id="error" class="error" role="alert" hidden></div>
+    <form id="filters" class="filters" role="search"><label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search resources or capabilities" aria-label="Search resources or capabilities" autocomplete="off"></label><label class="kind-label">Type <select id="kind"><option value="">All resources</option><option value="mcp">MCP</option><option value="postgresql">PostgreSQL</option></select></label><button type="button" id="clear">Clear filters</button></form>
+    <div class="workspace">
+      <section class="network-panel" aria-labelledby="network-title">
+        <div class="panel-heading"><h2 id="network-title">Fabric graph</h2><div class="legend"><span><i class="resource-dot"></i>Resource</span><span><i class="capability-dot"></i>Capability</span><span><i class="agent-dot"></i>Agent</span></div></div>
+        <div class="graph-wrap"><div id="graph" aria-label="Interactive graph. Use the resource list below for keyboard navigation."></div><p id="graph-message" class="graph-message" role="status">Loading graph from fabric MCP…</p><div class="graph-controls" aria-label="Graph controls"><button id="zoom-in" type="button" aria-label="Zoom in">+</button><button id="zoom-out" type="button" aria-label="Zoom out">−</button><button id="fit" type="button">Fit graph</button></div></div>
+        <div class="graph-caption"><span>Drag nodes to arrange · Scroll to zoom · Select to inspect</span><a href="https://js.cytoscape.org/" target="_blank" rel="noopener noreferrer">Cytoscape.js</a></div>
+        <div class="resource-heading"><h2>Resources</h2><span id="result-count" class="muted"></span></div><div id="resources" class="resource-list" aria-label="Resources"></div>
+        <div class="resource-heading"><h2>Announced agents</h2><span id="agent-status" class="muted"></span></div><div id="agents" class="resource-list" aria-label="Announced agents"></div>
+      </section>
+      <aside class="detail-panel" aria-label="Selected node details"><div class="panel-heading"><h2>Node details</h2><span class="muted">Read-only</span></div><div id="details"><p class="empty">Select a resource to inspect its descriptor.</p></div></aside>
+    </div>
+    <footer><p>Published metadata describes resources; it does not establish availability or verify identity.</p><p>Agent connections show observed discovery, not direct queries. Recent means seen within 15 minutes; records expire after 7 days.</p></footer>
+  </main>
+</body>
+</html>

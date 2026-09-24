@@ -1,5 +1,5 @@
 {
   "repository": "https://github.com/chrissweet/llm-wiki-fabric",
-  "commit": "fa5fcb9",
+  "commit": "a431949bb2dc08b28b9d897a028dfad5d42f8423",
   "note": "Bundled runtime and client policy; resource descriptors are supplied by hosted discovery."
 }
