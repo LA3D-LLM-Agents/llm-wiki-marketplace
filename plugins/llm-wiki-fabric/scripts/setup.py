@@ -13,8 +13,8 @@ def main():
         .expanduser()
         .absolute()
     )
-    catalog = (
-        Path(os.environ.get("FABRIC_CATALOG", "~/.config/llm-wiki-fabric/resources.yaml"))
+    policy = (
+        Path(os.environ.get("FABRIC_CLIENT_POLICY", "~/.config/llm-wiki-fabric/client-policy.yaml"))
         .expanduser()
         .absolute()
     )
@@ -35,23 +35,14 @@ def main():
         env={**os.environ, "UV_PROJECT_ENVIRONMENT": str(environment)},
         check=True,
     )
-    catalog.parent.mkdir(parents=True, exist_ok=True)
-    # Never replace operator catalog or dictionary files during plugin upgrades.
-    for file in (source / "descriptors").glob("*.json"):
-        target = catalog.parent / "descriptors" / file.name
-        target.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            with target.open("x") as out:
-                out.write(file.read_text())
-        except FileExistsError:
-            pass
+    policy.parent.mkdir(parents=True, exist_ok=True)
     try:
-        with catalog.open("x") as out:
-            out.write((source / "resources.yaml").read_text())
+        with policy.open("x") as out:
+            out.write((source / "client-policy.yaml").read_text())
     except FileExistsError:
         pass
-    print(f"Runtime: {environment}\nCatalog: {catalog}")
-    print("Existing config preserved. Database access needs a local read-only credential profile.")
+    print(f"Runtime: {environment}\nPolicy: {policy}")
+    print("Existing config preserved. Database access needs SSH login and a local credential keyed by resource ID.")
     print("Restart Claude Code or Codex to connect the plugin MCP servers.")
 
 

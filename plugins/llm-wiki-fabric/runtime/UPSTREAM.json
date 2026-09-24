@@ -1,5 +1,5 @@
 {
   "repository": "https://github.com/chrissweet/llm-wiki-fabric",
-  "commit": "3b0c897",
-  "note": "Runtime and catalog snapshot; marketplace packaging is maintained here."
+  "commit": "5470895",
+  "note": "Bundled runtime and client policy; resource descriptors are supplied by hosted discovery."
 }

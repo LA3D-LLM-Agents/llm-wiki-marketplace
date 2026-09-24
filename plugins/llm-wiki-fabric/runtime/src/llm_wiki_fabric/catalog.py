@@ -48,6 +48,12 @@ class MCPConnection(StrictModel):
         return self
 
 
+class SSHAccess(StrictModel):
+    kind: Literal["ssh"]
+    host: Annotated[str, Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9.-]*$")]
+    port: int = Field(default=22, ge=1, le=65535)
+
+
 class SQLConnection(StrictModel):
     kind: Literal["postgresql"]
     host: str = "localhost"
@@ -55,6 +61,7 @@ class SQLConnection(StrictModel):
     port: int = Field(default=5432, ge=1, le=65535)
     database: Identifier
     auth_profile: Identifier
+    access: SSHAccess | None = None
 
 
 class Resource(StrictModel):
@@ -228,7 +235,12 @@ class Catalog:
         for resource in config["resources"]:
             connection = resource["connection"]
             if connection["kind"] == "postgresql":
-                resource["connection"] = {"kind": "postgresql", "requires_local_profile": True}
+                if connection.get("access"):
+                    connection.pop("auth_profile", None)
+                    connection.pop("host_env", None)
+                    connection["requires_credentials"] = True
+                else:
+                    resource["connection"] = {"kind": "postgresql", "requires_local_profile": True}
             else:
                 connection.pop("auth_profile", None)
         return config

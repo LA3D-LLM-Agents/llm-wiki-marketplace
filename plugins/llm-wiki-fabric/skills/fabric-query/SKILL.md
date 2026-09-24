@@ -5,7 +5,7 @@ description: Discover research resources through the llm-wiki fabric and query P
 
 # Discover and query research resources
 
-Use hosted fabric MCP tools at https://fabric.crc.nd.edu/mcp for discovery, then the separate local direct MCP tools for source access. SQL requires a locally configured profile; a discovered database is not automatically reachable from every machine.
+Use hosted fabric MCP tools at https://fabric.crc.nd.edu/mcp for discovery, then the separate local direct MCP tools for source access. SQL routing comes from the published descriptor. The connector creates temporary SSH forwarding; local host policy, SSH login and credentials keyed by resource ID are still required. Do not create a local resource catalog.
 
 1. Call `fabric_find` with a few relevant keywords (or an empty query to list the catalog).
 2. Call `fabric_identify` for the selected resource. Check descriptor freshness: disclose `stale` or `offline-cache` metadata, and do not interpret published DID metadata as verified identity. Retain its `resource_id` and `revision`; pass both to direct connector tools. If a tool returns `stale_catalog`, rediscover after both servers have restarted with the same catalog.

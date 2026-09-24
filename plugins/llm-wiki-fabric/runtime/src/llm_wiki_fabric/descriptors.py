@@ -85,7 +85,10 @@ def normalize(seed, bundle, profiles):
             raise ValueError("Unsupported descriptor")
         metadata.pop("data_dictionary", None)
         metadata["data_dictionary"] = bundle.get("dictionary", {})
-        metadata["connection"] = profiles[seed["connection_profile"]]
+        if "connection" in metadata:
+            metadata["connection"] = {**metadata["connection"], "auth_profile": seed["id"]}
+        else:
+            metadata["connection"] = profiles[seed["connection_profile"]]
         if metadata["connection"]["kind"] != "postgresql":
             raise ValueError("Profile kind mismatch")
         # Reject publisher-supplied authorization or identity overrides.

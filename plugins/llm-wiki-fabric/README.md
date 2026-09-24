@@ -1,100 +1,58 @@
 # llm-wiki-fabric
 
-Discover research resources through a small RDF graph, inspect source semantics,
-and query PAD MCP or PostgreSQL directly. One shared skill and MCP configuration
-serve Claude Code and Codex, with separate client manifests. Version: 0.3.0.
+Version 0.4.0, shared by Codex and Claude Code.
 
-## Hosted discovery
+Discovery uses https://fabric.crc.nd.edu/mcp. The local connector loads the
+published catalog at startup; resource metadata, SQL destination and SSH routing
+come from descriptors. No client resource catalog is installed or read.
 
-The fabric MCP entry now connects to `https://fabric.crc.nd.edu/mcp`.
-The local direct connector loads `https://fabric.crc.nd.edu/catalog.json` at
-startup, retaining local credentials, database routing and approved permissions.
-Public discovery omits database host/credential profile names. The SQL database
-remains local or privately reachable; the fabric server does not execute queries.
-Remote snapshots fail closed if unavailable or inconsistent. Restart the local
-connector after a remote catalog revision changes. Operator-approved MCP endpoint
-changes require updating the local catalog. Identities remain unverified.
+## Setup
 
-Version 0.3.0 requires rerunning setup to replace the 0.2.0 runtime, followed by
-client restart. The runtime Python package remains 0.1.0; setup explicitly forces
-reinstallation of the bundled source, so the plugin version selects the release.
-
-## Install and setup
-
-Install `llm-wiki-fabric@llm-wiki-marketplace` using the root marketplace README.
-Requires macOS/Linux (bash), Python 3.11+ and `uv` on PATH. Python dependencies
-and the PostgreSQL driver are included in the locked runtime installation.
-
-Run once, using the installed plugin directory or this marketplace checkout:
+Requires macOS/Linux, bash, Python 3.11+, uv and OpenSSH.
 
 ```sh
 python3 plugins/llm-wiki-fabric/scripts/setup.py
 ```
 
-The script installs the bundled Python runtime non-editably into
-`~/.local/share/llm-wiki-fabric/venv`, and seeds the catalog and descriptors under
-`~/.config/llm-wiki-fabric/`. Existing configuration is preserved. It downloads
-locked dependencies as necessary; it does not create a database, configure a role,
-copy credentials, or execute research queries. Restart the client after setup.
-The initial missing-runtime message before setup is expected.
+Rerun setup after upgrading, then restart Codex/Claude. Version 0.3 clients cannot
+consume the new SQL routing descriptor. Setup installs the bundled runtime into
+`~/.local/share/llm-wiki-fabric/venv` and creates `client-policy.yaml` under
+`~/.config/llm-wiki-fabric/`, preserving existing policy. Override paths with
+`FABRIC_RUNTIME` and `FABRIC_CLIENT_POLICY`. Old resources.yaml files are ignored.
 
-For another location set `FABRIC_RUNTIME` (venv directory) and `FABRIC_CATALOG`
-(absolute YAML path) consistently for both setup and the client process. The shared
-MCP launch command resolves these environment variables independently of client
-cache paths and working directory. Dependency installation never occurs in the
-MCP startup handshake. Plugin updates require rerunning setup; compare bundled
-catalog/dictionary changes with your preserved operator configuration.
-
-PAD's default seed uses https://pad.crc.nd.edu/.well-known/did.json. Startup can
-fetch metadata; validated caches are reused with freshness reporting. Query access
-is restricted by the catalog's local tool/table allowlists. Publisher identities
-are explicitly unverified. No background refresh or signature verification is provided.
+Policy approves the HTTPS catalog, MCP/SSH hosts and tool/table permissions.
+Descriptors cannot expand these permissions. A newly introduced host needs a
+policy change. New transports need connector support. Changes within supported
+transports and policy need only descriptor updates and connector restart.
 
 ## Database access
 
-The default SQL profile expects an already running `raredisease` PostgreSQL database
-on localhost:5432. Change the local catalog for your deployment. Credentials stay in
-`~/.config/llm-wiki-fabric/credentials.json`, mode 0600 (or `FABRIC_CREDENTIALS`):
+Configure SSH login and a trusted host key for fabric.crc.nd.edu. Each SQL
+operation opens a temporary local tunnel and closes it afterward; no fixed port
+or launch agent is needed. Keep credentials in
+`~/.config/llm-wiki-fabric/credentials.json` with mode 0600 (or FABRIC_CREDENTIALS):
 
 ```json
-{"rare-disease-readonly": {"user": "fabric_reader", "password": "YOUR_LOCAL_SECRET"}}
+{"rare-disease-db": {"user": "fabric_reader", "password": "YOUR_SECRET"}}
 ```
 
-The database administrator must grant SELECT only on the approved research tables.
-For the existing Docker container named `rare-disease-db`, the optional
-`scripts/setup_database.py` helper provisions that role using Docker administrator
-access. Run it explicitly with the installed runtime Python and `--catalog` pointing
-to your configured YAML only when authorized to provision database access.
-This helper is not run by installation. The plugin does not ship the database or its data.
-To use only PAD, remove the database resource from your local catalog.
+Credentials and SSH keys remain local. The administrator grants read-only access
+to the approved research tables. Setup does not provision database accounts.
 
 ## Use
 
-Claude: `/llm-wiki-fabric:fabric-query` followed by the question.
-Codex: ask to use `fabric-query`.
-
-> Discover both resources and report descriptor freshness. Read PAD's ontology,
-> then find the layout and lane B reagent for physical card 19705. Read the
-> database dictionary/schema and count MSL3 publications with and without exclusions.
-
-Discovery tools: `fabric_find`, `fabric_identify`.
-Direct tools: `resource_tools`, `resource_call`, `db_schema`, `db_query`.
-The workflow retains catalog revisions, reads ontology/schema first, uses bounded
-queries, and checks completeness. Disable the earlier personal/development fabric
-plugin when switching to this marketplace version to avoid duplicate servers.
+Ask to use fabric-query. Discover and identify resources, read PAD ontology or
+SQL dictionary/live schema, then query directly. Retain revisions and query times;
+report errors, stale metadata and unverified identities. Restart connectors after
+catalog changes; there is no background refresh or identity verification.
 
 ## Maintenance
 
-Runtime/catalog snapshot: upstream `chrissweet/llm-wiki-fabric` commit `3b0c897`.
-Source is bundled in `runtime/` so installation does not depend on a developer's
-checkout or a moving Git branch. Refresh the runtime, lockfile, descriptors and
-shared skill from reviewed upstream changes together; bump both client manifests.
-Run `claude plugin validate`, the Codex plugin validator, and the smoke check:
+Runtime provenance is recorded in runtime/UPSTREAM.json (upstream 5470895).
+Both manifests use the same release. Validate the plugin and run:
 
 ```sh
-FABRIC_RUNTIME=/path/to/test/venv FABRIC_CATALOG=/path/to/test/resources.yaml \
-  /path/to/test/venv/bin/python plugins/llm-wiki-fabric/scripts/smoke_test.py
+~/.local/share/llm-wiki-fabric/venv/bin/python plugins/llm-wiki-fabric/scripts/smoke_test.py
 ```
 
-The smoke check initializes both configured MCP subprocesses and checks tools and
-discovery; it does not query resource data. First discovery may fetch PAD metadata.
+The smoke test initializes discovery and connectors; it does not query data.

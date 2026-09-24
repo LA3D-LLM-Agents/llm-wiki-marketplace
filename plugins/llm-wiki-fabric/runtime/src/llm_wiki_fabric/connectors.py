@@ -6,6 +6,7 @@ import asyncio
 import json
 import os
 import stat
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -258,22 +259,27 @@ class DirectClients:
             # Do not reflect HTTP headers, auth material, or remote exception bodies.
             raise remote_failure(exc) from None
 
+    @contextmanager
     def connect(self, resource: Resource):
         c = resource.connection
         assert isinstance(c, SQLConnection)
         auth = credentials(c.auth_profile, self.credential_path)
         if not auth.get("user") or not auth.get("password"):
             raise FabricError("missing_credentials", "Database profile needs user and password")
-        return psycopg.connect(
-            host=c.host,
-            port=c.port,
-            dbname=c.database,
-            user=auth["user"],
-            password=auth["password"],
-            connect_timeout=5,
-            application_name="llm-wiki-fabric-direct",
-            options=f"-c default_transaction_read_only=on -c statement_timeout={TIMEOUT_MS} -c search_path=pg_catalog,public",
-        )
+        from .tunnel import sql_route
+
+        with sql_route(c) as (host, port):
+            with psycopg.connect(
+                host=host,
+                port=port,
+                dbname=c.database,
+                user=auth["user"],
+                password=auth["password"],
+                connect_timeout=5,
+                application_name="llm-wiki-fabric-direct",
+                options=f"-c default_transaction_read_only=on -c statement_timeout={TIMEOUT_MS} -c search_path=pg_catalog,public",
+            ) as connection:
+                yield connection
 
     @staticmethod
     def sql_error(exc: psycopg.Error):

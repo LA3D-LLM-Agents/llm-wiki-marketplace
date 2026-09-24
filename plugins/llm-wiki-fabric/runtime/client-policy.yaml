@@ -1,0 +1,22 @@
+schema_version: 1
+trusted_catalogs:
+- https://fabric.crc.nd.edu/catalog.json
+allowed_mcp_hosts:
+- pad.crc.nd.edu
+allowed_ssh_hosts:
+- fabric.crc.nd.edu
+allowed_tools:
+- download_ontology
+- get_api_ld_v3_projects
+- get_api_ld_v3_project_by_name_project_name
+- get_api_ld_v3_cards_by_project_project_name_sample_ids
+- get_api_ld_v3_cards_by_project_project_name_sample_id_ranges
+- get_api_ld_v3_cards_by_sample_sample_id
+- get_api_ld_v3_layout_layout_name
+allowed_tables:
+- publications_disease
+- publications_publication
+- publications_source
+- publications_publication_diseases
+- publications_publication_sources
+- publications_clinical_trial

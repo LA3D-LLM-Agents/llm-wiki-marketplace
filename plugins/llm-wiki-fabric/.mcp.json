@@ -8,7 +8,7 @@
       "command": "bash",
       "args": [
         "-c",
-        "runtime=\"${FABRIC_RUNTIME:-$HOME/.local/share/llm-wiki-fabric/venv}\"; catalog=\"${FABRIC_CATALOG:-$HOME/.config/llm-wiki-fabric/resources.yaml}\"; if [ ! -x \"$runtime/bin/python\" ]; then echo \"Fabric runtime missing. Run the plugin scripts/setup.py, then restart your client.\" >&2; exit 1; fi; exec \"$runtime/bin/python\" -m llm_wiki_fabric.cli \"$1\" --catalog \"$catalog\"",
+        "runtime=\"${FABRIC_RUNTIME:-$HOME/.local/share/llm-wiki-fabric/venv}\"; policy=\"${FABRIC_CLIENT_POLICY:-$HOME/.config/llm-wiki-fabric/client-policy.yaml}\"; if [ ! -x \"$runtime/bin/python\" ]; then echo \"Fabric runtime missing. Run the plugin scripts/setup.py, then restart your client.\" >&2; exit 1; fi; exec \"$runtime/bin/python\" -m llm_wiki_fabric.cli \"$1\" --policy \"$policy\"",
         "fabric-plugin",
         "connectors"
       ],
