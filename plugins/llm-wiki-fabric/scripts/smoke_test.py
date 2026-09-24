@@ -4,10 +4,25 @@ import asyncio
 import json
 import os
 import tempfile
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from mcp.client.streamable_http import streamablehttp_client
+
+
+@asynccontextmanager
+async def transport(server, directory):
+    if server.get("type") == "http":
+        async with streamablehttp_client(server["url"]) as (read, write, _):
+            yield read, write
+    else:
+        server = dict(server)
+        environment = {**os.environ, **server.pop("env", {})}
+        params = StdioServerParameters(**server, cwd=directory, env=environment)
+        async with stdio_client(params) as streams:
+            yield streams
 
 
 async def main():
@@ -19,8 +34,10 @@ async def main():
     }
     with tempfile.TemporaryDirectory(prefix="fabric smoke ") as directory:
         for name, server in config["mcpServers"].items():
-            params = StdioServerParameters(**server, cwd=directory, env=dict(os.environ))
-            async with stdio_client(params) as (read, write), ClientSession(read, write) as client:
+            async with (
+                transport(server, directory) as (read, write),
+                ClientSession(read, write) as client,
+            ):
                 await client.initialize()
                 assert {t.name for t in (await client.list_tools()).tools} == expected[name]
                 if name == "fabric":

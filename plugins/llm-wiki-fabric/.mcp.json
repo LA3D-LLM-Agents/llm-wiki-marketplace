@@ -1,13 +1,8 @@
 {
   "mcpServers": {
     "fabric": {
-      "command": "bash",
-      "args": [
-        "-c",
-        "runtime=\"${FABRIC_RUNTIME:-$HOME/.local/share/llm-wiki-fabric/venv}\"; catalog=\"${FABRIC_CATALOG:-$HOME/.config/llm-wiki-fabric/resources.yaml}\"; if [ ! -x \"$runtime/bin/python\" ]; then echo \"Fabric runtime missing. Run the plugin scripts/setup.py, then restart your client.\" >&2; exit 1; fi; exec \"$runtime/bin/python\" -m llm_wiki_fabric.cli \"$1\" --catalog \"$catalog\"",
-        "fabric-plugin",
-        "serve"
-      ]
+      "type": "http",
+      "url": "https://fabric.crc.nd.edu/mcp"
     },
     "direct": {
       "command": "bash",
@@ -16,7 +11,10 @@
         "runtime=\"${FABRIC_RUNTIME:-$HOME/.local/share/llm-wiki-fabric/venv}\"; catalog=\"${FABRIC_CATALOG:-$HOME/.config/llm-wiki-fabric/resources.yaml}\"; if [ ! -x \"$runtime/bin/python\" ]; then echo \"Fabric runtime missing. Run the plugin scripts/setup.py, then restart your client.\" >&2; exit 1; fi; exec \"$runtime/bin/python\" -m llm_wiki_fabric.cli \"$1\" --catalog \"$catalog\"",
         "fabric-plugin",
         "connectors"
-      ]
+      ],
+      "env": {
+        "FABRIC_DISCOVERY_URL": "https://fabric.crc.nd.edu/catalog.json"
+      }
     }
   }
 }

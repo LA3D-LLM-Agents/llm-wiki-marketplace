@@ -2,7 +2,22 @@
 
 Discover research resources through a small RDF graph, inspect source semantics,
 and query PAD MCP or PostgreSQL directly. One shared skill and MCP configuration
-serve Claude Code and Codex, with separate client manifests. Version: 0.2.0.
+serve Claude Code and Codex, with separate client manifests. Version: 0.3.0.
+
+## Hosted discovery
+
+The fabric MCP entry now connects to `https://fabric.crc.nd.edu/mcp`.
+The local direct connector loads `https://fabric.crc.nd.edu/catalog.json` at
+startup, retaining local credentials, database routing and approved permissions.
+Public discovery omits database host/credential profile names. The SQL database
+remains local or privately reachable; the fabric server does not execute queries.
+Remote snapshots fail closed if unavailable or inconsistent. Restart the local
+connector after a remote catalog revision changes. Operator-approved MCP endpoint
+changes require updating the local catalog. Identities remain unverified.
+
+Version 0.3.0 requires rerunning setup to replace the 0.2.0 runtime, followed by
+client restart. The runtime Python package remains 0.1.0; setup explicitly forces
+reinstallation of the bundled source, so the plugin version selects the release.
 
 ## Install and setup
 
@@ -70,7 +85,7 @@ plugin when switching to this marketplace version to avoid duplicate servers.
 
 ## Maintenance
 
-Runtime/catalog snapshot: upstream `chrissweet/llm-wiki-fabric` commit `9f4022d`.
+Runtime/catalog snapshot: upstream `chrissweet/llm-wiki-fabric` commit `3b0c897`.
 Source is bundled in `runtime/` so installation does not depend on a developer's
 checkout or a moving Git branch. Refresh the runtime, lockfile, descriptors and
 shared skill from reviewed upstream changes together; bump both client manifests.

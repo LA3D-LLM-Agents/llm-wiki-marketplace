@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import sys
 
 from .catalog import Catalog, FabricError
@@ -11,9 +12,20 @@ def main():
     parser.add_argument("--catalog", default="resources.yaml")
     parser.add_argument("--refresh", action="store_true")
     parser.add_argument("--offline", action="store_true")
+    parser.add_argument("--transport", choices=["stdio", "streamable-http"], default="stdio")
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--public-host", default="fabric.crc.nd.edu")
+    parser.add_argument("--discovery-url", default=os.environ.get("FABRIC_DISCOVERY_URL"))
     args = parser.parse_args()
+    if args.command == "connectors" and args.transport != "stdio":
+        parser.error("Direct connectors must remain local (stdio)")
     try:
         catalog = Catalog(args.catalog, refresh=args.refresh, offline=args.offline)
+        if args.discovery_url:
+            from .remote_catalog import remote_catalog
+
+            catalog = remote_catalog(catalog, args.discovery_url)
         if args.command == "inspect":
             print(json.dumps(catalog.find(), indent=2))
         elif args.command == "graph":
@@ -21,8 +33,17 @@ def main():
         else:
             from .servers import connector_server, discovery_server
 
-            factory = discovery_server if args.command == "serve" else connector_server
-            factory(catalog).run(transport="stdio")
+            if args.command == "serve":
+                server = discovery_server(
+                    catalog,
+                    http=args.transport == "streamable-http",
+                    host=args.host,
+                    port=args.port,
+                    public_host=args.public_host,
+                )
+            else:
+                server = connector_server(catalog)
+            server.run(transport=args.transport)
     except FabricError as exc:
         print(f"{exc.code}: {exc.message}", file=sys.stderr)
         raise SystemExit(1)

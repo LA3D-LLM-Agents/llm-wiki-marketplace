@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import time
 from pathlib import Path
 from typing import Annotated, Literal
 from urllib.parse import urlsplit
@@ -115,6 +116,9 @@ class Catalog:
             raise FabricError(
                 "invalid_catalog", "Cannot read a valid YAML catalog at the supplied path"
             ) from None
+        self._build()
+
+    def _build(self):
         # Resolve only nonsecret host overrides. Credentials are never loaded here.
         for r in self.config.resources:
             c = r.connection
@@ -123,7 +127,7 @@ class Catalog:
                     c.host = os.environ.get(c.host_env, c.host)
                 if not re.fullmatch(r"[a-zA-Z0-9_.:-]+", c.host):
                     raise FabricError("invalid_catalog", "Invalid PostgreSQL host")
-        canonical = json.dumps(self.config.model_dump(), sort_keys=True).encode()
+        canonical = json.dumps(self.public_config(), sort_keys=True).encode()
         self.revision = hashlib.sha256(canonical).hexdigest()
         self.resources = {r.id: r for r in self.config.resources}
         self.graph = Graph()
@@ -192,7 +196,7 @@ class Catalog:
             "revision": self.revision,
             "resources": found,
             "status": "configured; availability and identity not verified",
-            "descriptors": self.descriptor_status,
+            "descriptors": self.freshness(),
         }
 
     def identify(self, resource_id: str) -> dict:
@@ -207,5 +211,38 @@ class Catalog:
             "identity_verified": False,
             "publisher_id": self.get(resource_id).publisher_id,
             "ontology_url": self.get(resource_id).ontology_url,
-            "descriptor": self.descriptor_status.get(resource_id, {"state": "inline"}),
+            "descriptor": self.freshness().get(resource_id, {"state": "inline"}),
         }
+
+    def freshness(self):
+        statuses = {key: dict(value) for key, value in self.descriptor_status.items()}
+        for status in statuses.values():
+            if "fetched_at" in status:
+                status["age_seconds"] = max(0, int(time.time() - status["fetched_at"]))
+                if status["age_seconds"] >= 3600 and status["state"] in {"cached", "fresh"}:
+                    status["state"] = "stale"
+        return statuses
+
+    def public_config(self):
+        config = self.config.model_dump()
+        for resource in config["resources"]:
+            connection = resource["connection"]
+            if connection["kind"] == "postgresql":
+                resource["connection"] = {"kind": "postgresql", "requires_local_profile": True}
+            else:
+                connection.pop("auth_profile", None)
+        return config
+
+    def snapshot(self):
+        return {
+            "revision": self.revision,
+            "catalog": self.public_config(),
+            "descriptors": self.freshness(),
+        }
+
+    def public_identify(self, resource_id):
+        result = self.identify(resource_id)
+        result["connection"] = next(
+            r["connection"] for r in self.public_config()["resources"] if r["id"] == resource_id
+        )
+        return result

@@ -4,7 +4,9 @@ from functools import wraps
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import ToolAnnotations
+from starlette.responses import JSONResponse
 
 from .catalog import Catalog, FabricError
 
@@ -23,9 +25,20 @@ def guarded(fn):
     return wrapped
 
 
-def discovery_server(catalog: Catalog) -> FastMCP:
+def discovery_server(
+    catalog: Catalog, *, http=False, host="127.0.0.1", port=8000, public_host="fabric.crc.nd.edu"
+) -> FastMCP:
     mcp = FastMCP(
         "llm-wiki-fabric",
+        host=host,
+        port=port,
+        stateless_http=True,
+        json_response=True,
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=[public_host, "127.0.0.1:*", "localhost:*"],
+            allowed_origins=[f"https://{public_host}"],
+        ),
         instructions="Discover resources, then identify one. Query it through the separate local connector tools; discovery never queries resource data.",
     )
 
@@ -39,7 +52,17 @@ def discovery_server(catalog: Catalog) -> FastMCP:
     @guarded
     def fabric_identify(resource_id: str) -> dict[str, Any]:
         """Get connection metadata, semantic entrypoint and revision. Pass resource_id and revision to the local connector tools."""
-        return catalog.identify(resource_id)
+        return catalog.public_identify(resource_id) if http else catalog.identify(resource_id)
+
+    if http:
+
+        @mcp.custom_route("/catalog.json", methods=["GET"])
+        async def snapshot(request):
+            return JSONResponse(catalog.snapshot(), headers={"Cache-Control": "no-store"})
+
+        @mcp.custom_route("/healthz", methods=["GET"])
+        async def health(request):
+            return JSONResponse({"status": "ready", "revision": catalog.revision})
 
     return mcp
 
