@@ -16,7 +16,6 @@ no build step**, unlike a plugin set whose hooks differ per harness.
 |---|---|
 | **wiki-agent-msg** | List and message coding-agent sessions across Claude Code and Codex on the same machine. `agents-list` shows every running agent tagged by platform; `agents-send <target> "<msg>"` routes by the target's platform (Codex -> `codex queue`; Claude -> a `claude -p` relay that calls `SendMessage`). |
 | **wiki-kg** | Build, query, and **visualize** a typed-edge knowledge graph from an llm-wiki. The `wiki-kg` skill builds the graph (rdflib + pyshacl, in-process, no server; venv self-bootstraps) and runs curated SPARQL queries (hubs, orphans, ancestors, extension chains, supports/criticizes); the `wiki-graph-viz` skill renders it as a self-contained interactive Cytoscape map (color by type or git recency, size by degree, filters, search; click a node to open its GitHub wiki page). |
-
 | **llm-wiki-fabric** | Discover PAD and rare-disease resources through an RDF catalog, then query MCP/PostgreSQL directly with local read-only connectors. Requires one-time runtime setup; see its README. |
 
 ## Install
