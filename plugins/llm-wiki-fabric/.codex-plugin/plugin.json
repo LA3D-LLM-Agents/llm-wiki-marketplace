@@ -1,0 +1,23 @@
+{
+  "name": "llm-wiki-fabric",
+  "version": "0.2.0",
+  "description": "Discover and directly query PAD and rare-disease research resources.",
+  "author": {
+    "name": "chrissweet",
+    "email": "csweet1@nd.edu"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "llm-wiki Fabric",
+    "shortDescription": "Discover research resources and query them directly.",
+    "longDescription": "Discover PAD MCP and the rare-disease database through a local knowledge graph, then query them through local read-only connectors.",
+    "developerName": "chrissweet",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
+    "defaultPrompt": "Find resources for PAD layouts and MSL3 publications."
+  },
+  "mcpServers": "./.mcp.json",
+  "repository": "https://github.com/chrissweet/llm-wiki-fabric"
+}

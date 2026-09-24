@@ -1,0 +1,10 @@
+{
+  "name": "llm-wiki-fabric",
+  "version": "0.2.0",
+  "description": "Discover and directly query PAD and rare-disease research resources.",
+  "author": {
+    "name": "chrissweet",
+    "email": "csweet1@nd.edu"
+  },
+  "repository": "https://github.com/chrissweet/llm-wiki-fabric"
+}

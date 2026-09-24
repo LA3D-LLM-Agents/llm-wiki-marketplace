@@ -17,6 +17,11 @@
       "name": "wiki-kg",
       "source": "./plugins/wiki-kg",
       "description": "Build, query, and visualize a typed-edge knowledge graph from an llm-wiki (rdflib + pyshacl, in-process; interactive Cytoscape map; no server)."
+    },
+    {
+      "name": "llm-wiki-fabric",
+      "source": "./plugins/llm-wiki-fabric",
+      "description": "Discover and directly query PAD and rare-disease research resources."
     }
   ]
 }

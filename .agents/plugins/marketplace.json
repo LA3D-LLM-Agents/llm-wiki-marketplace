@@ -19,6 +19,18 @@
         "path": "./plugins/wiki-kg"
       },
       "description": "Build, query, and visualize a typed-edge knowledge graph from an llm-wiki (rdflib + pyshacl, in-process; interactive Cytoscape map; no server)."
+    },
+    {
+      "name": "llm-wiki-fabric",
+      "source": {
+        "source": "local",
+        "path": "./plugins/llm-wiki-fabric"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     }
   ]
 }

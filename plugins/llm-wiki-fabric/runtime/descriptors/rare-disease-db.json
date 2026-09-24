@@ -1,0 +1,15 @@
+{
+  "label": "Rare-disease research database",
+  "description": "Rare-disease publications, literature sources, corpus exclusions and clinical trial snapshots for MSL3, NKH, NPC, GSD, ARHGEF9, EDMD, KIF1A, SHANK2, CACNA1A and MALAN.",
+  "capabilities": [
+    "rare-disease",
+    "publications",
+    "literature",
+    "clinical-trials",
+    "sql-read"
+  ],
+  "semantic_entrypoint": "db_schema",
+  "schema_version": 1,
+  "kind": "postgresql",
+  "data_dictionary": "rare-disease-data-dictionary.json"
+}
