@@ -29,7 +29,7 @@ async def main():
     plugin = Path(__file__).resolve().parents[1]
     config = json.loads((plugin / ".mcp.json").read_text())
     expected = {
-        "fabric": {"fabric_find", "fabric_identify"},
+        "fabric": {"fabric_find", "fabric_identify", "fabric_catalog"},
         "direct": {"resource_tools", "resource_call", "db_schema", "db_query"},
     }
     with tempfile.TemporaryDirectory(prefix="fabric smoke ") as directory:

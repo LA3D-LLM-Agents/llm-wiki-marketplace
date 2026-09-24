@@ -1,13 +1,15 @@
 """Import a public discovery snapshot while retaining operator routing and permissions."""
 
+import asyncio
 import hashlib
 import json
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
 
-import httpx
 import yaml
+from mcp import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
 from pydantic import Field
 
 from .catalog import Catalog, CatalogConfig, FabricError, Identifier, StrictModel
@@ -26,18 +28,25 @@ def fetch_snapshot(url):
         raise FabricError(
             "invalid_discovery_url", "Discovery snapshot requires a credential-free HTTPS URL"
         )
+
+    async def retrieve():
+        async with asyncio.timeout(20):
+            async with streamablehttp_client(url, timeout=15) as (read, write, _):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    result = await session.call_tool("fabric_catalog", {})
+                    if result.isError or not isinstance(result.structuredContent, dict):
+                        raise ValueError("Invalid catalog tool result")
+                    snapshot = result.structuredContent
+                    if len(json.dumps(snapshot).encode()) > 1_000_000:
+                        raise ValueError("Snapshot too large")
+                    return snapshot
+
     try:
-        with httpx.stream("GET", url, timeout=15, follow_redirects=False) as response:
-            response.raise_for_status()
-            body = bytearray()
-            for chunk in response.iter_bytes():
-                body.extend(chunk)
-                if len(body) > 1_000_000:
-                    raise ValueError("Snapshot too large")
-        return json.loads(body)
-    except (httpx.HTTPError, ValueError, KeyError, TypeError):
+        return asyncio.run(retrieve())
+    except Exception:
         raise FabricError(
-            "discovery_unavailable", "Cannot load a valid approved discovery snapshot"
+            "discovery_unavailable", "Cannot load catalog through the approved fabric MCP server"
         ) from None
 
 

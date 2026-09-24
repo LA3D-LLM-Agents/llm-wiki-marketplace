@@ -54,11 +54,12 @@ def discovery_server(
         """Get connection metadata, semantic entrypoint and revision. Pass resource_id and revision to the local connector tools."""
         return catalog.public_identify(resource_id) if http else catalog.identify(resource_id)
 
-    if http:
+    @mcp.tool(annotations=READ)
+    def fabric_catalog() -> dict[str, Any]:
+        """Get the complete public descriptor snapshot for connector startup: routing, dictionaries, permissions, freshness and revision. Contains no credentials."""
+        return catalog.snapshot()
 
-        @mcp.custom_route("/catalog.json", methods=["GET"])
-        async def snapshot(request):
-            return JSONResponse(catalog.snapshot(), headers={"Cache-Control": "no-store"})
+    if http:
 
         @mcp.custom_route("/healthz", methods=["GET"])
         async def health(request):

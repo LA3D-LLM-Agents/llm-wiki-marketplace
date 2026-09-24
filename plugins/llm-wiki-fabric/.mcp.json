@@ -13,7 +13,7 @@
         "connectors"
       ],
       "env": {
-        "FABRIC_DISCOVERY_URL": "https://fabric.crc.nd.edu/catalog.json"
+        "FABRIC_DISCOVERY_URL": "https://fabric.crc.nd.edu/mcp"
       }
     }
   }

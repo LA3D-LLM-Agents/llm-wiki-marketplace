@@ -1,6 +1,6 @@
 schema_version: 1
 trusted_catalogs:
-- https://fabric.crc.nd.edu/catalog.json
+- https://fabric.crc.nd.edu/mcp
 allowed_mcp_hosts:
 - pad.crc.nd.edu
 allowed_ssh_hosts:

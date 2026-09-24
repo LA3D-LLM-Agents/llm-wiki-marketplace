@@ -1,9 +1,8 @@
 # llm-wiki-fabric
 
-Version 0.4.0, shared by Codex and Claude Code.
+Version 0.5.0, shared by Codex and Claude Code.
 
-Discovery uses https://fabric.crc.nd.edu/mcp. The local connector loads the
-published catalog at startup; resource metadata, SQL destination and SSH routing
+Discovery uses https://fabric.crc.nd.edu/mcp. The local connector calls fabric_catalog through the same MCP endpoint at startup; resource metadata, SQL destination and SSH routing
 come from descriptors. No client resource catalog is installed or read.
 
 ## Setup
@@ -14,8 +13,9 @@ Requires macOS/Linux, bash, Python 3.11+, uv and OpenSSH.
 python3 plugins/llm-wiki-fabric/scripts/setup.py
 ```
 
-Rerun setup after upgrading, then restart Codex/Claude. Version 0.3 clients cannot
-consume the new SQL routing descriptor. Setup installs the bundled runtime into
+Rerun setup after upgrading, then restart Codex/Claude. Older clients using /catalog.json must upgrade. Replace the old URL in
+client-policy.yaml trusted_catalogs with https://fabric.crc.nd.edu/mcp.
+Preserve other policy restrictions. Setup installs the bundled runtime into
 `~/.local/share/llm-wiki-fabric/venv` and creates `client-policy.yaml` under
 `~/.config/llm-wiki-fabric/`, preserving existing policy. Override paths with
 `FABRIC_RUNTIME` and `FABRIC_CLIENT_POLICY`. Old resources.yaml files are ignored.
@@ -48,7 +48,7 @@ catalog changes; there is no background refresh or identity verification.
 
 ## Maintenance
 
-Runtime provenance is recorded in runtime/UPSTREAM.json (upstream 5470895).
+Runtime provenance is recorded in runtime/UPSTREAM.json (upstream fa5fcb9).
 Both manifests use the same release. Validate the plugin and run:
 
 ```sh
@@ -56,3 +56,7 @@ Both manifests use the same release. Validate the plugin and run:
 ```
 
 The smoke test initializes discovery and connectors; it does not query data.
+
+All descriptors, dictionaries and routing are transported through MCP. There is
+no HTTP catalog download or fallback; /catalog.json is removed. /healthz is
+reserved for operational monitoring and carries no resource descriptors.
