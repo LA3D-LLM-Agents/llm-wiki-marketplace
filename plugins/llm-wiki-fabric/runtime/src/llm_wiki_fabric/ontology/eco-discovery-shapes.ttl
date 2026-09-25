@@ -1,0 +1,65 @@
+# Version 0.2.0 discovery profile. Separate from legacy answer/maturity policy.
+@prefix eco: <https://la3d-llm-agents.github.io/ns/eco#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+eco:DiscoveryParticipantShape a sh:NodeShape ; sh:targetClass eco:Participant ;
+  sh:nodeKind sh:IRI ;
+  sh:property [ sh:path rdfs:label ; sh:minCount 1 ; sh:minLength 1 ] ;
+  sh:property [ sh:path eco:hasCapability ; sh:class eco:Capability ] ;
+  sh:property [ sh:path eco:hasService ; sh:class eco:ServiceEndpoint ] ;
+  sh:property [ sh:path eco:hasSemanticEntrypoint ; sh:class eco:SemanticEntrypoint ] ;
+  sh:property [ sh:path eco:requiresAccess ; sh:class eco:AccessRequirement ] .
+
+eco:DiscoveryCapabilityShape a sh:NodeShape ; sh:targetClass eco:Capability ;
+  sh:nodeKind sh:IRI ;
+  sh:property [ sh:path dct:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+  sh:property [ sh:path rdfs:label ; sh:minCount 1 ; sh:minLength 1 ] ;
+  sh:property [ sh:path eco:providedBy ; sh:minCount 1 ; sh:maxCount 1 ; sh:class eco:Participant ] ;
+  sh:property [ sh:path eco:keyword ; sh:datatype xsd:string ] .
+
+eco:DiscoveryURLShape a sh:PropertyShape ; sh:path eco:serviceURL ;
+  sh:maxCount 1 ; sh:datatype xsd:anyURI ;
+  sh:pattern "^https://[^/?#@]+(/[^?#]*)?$" ;
+  sh:message "Advertised network service URLs must use HTTPS without credentials, query or fragment." .
+eco:DiscoveryServiceShape a sh:NodeShape ; sh:targetClass eco:ServiceEndpoint ;
+  sh:property eco:DiscoveryURLShape .
+eco:DiscoveryMCPShape a sh:NodeShape ; sh:targetClass eco:MCPEndpoint ;
+  sh:property [ sh:path eco:transport ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ("streamable-http" "stdio") ] ;
+  sh:or (
+    [ sh:property [ sh:path eco:transport ; sh:hasValue "streamable-http" ] ;
+      sh:property [ sh:path eco:serviceURL ; sh:minCount 1 ] ]
+    [ sh:property [ sh:path eco:transport ; sh:hasValue "stdio" ] ;
+      sh:property [ sh:path eco:serviceURL ; sh:maxCount 0 ] ]
+  ) .
+
+eco:DiscoverySemanticShape a sh:NodeShape ; sh:targetClass eco:SemanticEntrypoint ;
+  sh:property [ sh:path eco:documentURL ; sh:maxCount 1 ; sh:datatype xsd:anyURI ; sh:pattern "^https://[^/?#@]+(/[^?#]*)?$" ] ;
+  sh:property [ sh:path eco:toolName ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[A-Za-z0-9_-]+$" ] ;
+  sh:property [ sh:path eco:invokedThrough ; sh:maxCount 1 ; sh:class eco:MCPEndpoint ] ;
+  sh:property [ sh:path eco:executionLocation ; sh:maxCount 1 ; sh:in (eco:ClientSide eco:ResourceSide) ] ;
+  sh:or (
+    [ sh:property [ sh:path eco:documentURL ; sh:minCount 1 ] ]
+    [ sh:property [ sh:path eco:toolName ; sh:minCount 1 ] ]
+  ) ;
+  sh:sparql [
+    sh:message "A stdio semantic tool must explicitly execute client-side." ;
+    sh:select """PREFIX eco: <https://la3d-llm-agents.github.io/ns/eco#>
+      SELECT $this WHERE { $this eco:toolName ?name ; eco:invokedThrough ?endpoint .
+        ?endpoint eco:transport "stdio" .
+        FILTER NOT EXISTS { $this eco:executionLocation eco:ClientSide } }"""
+  ] ;
+  sh:or (
+    [ sh:property [ sh:path eco:toolName ; sh:maxCount 0 ] ]
+    [ sh:property [ sh:path eco:invokedThrough ; sh:minCount 1 ] ;
+      sh:property [ sh:path eco:executionLocation ; sh:minCount 1 ] ]
+  ) .
+
+eco:DiscoveryAccessShape a sh:NodeShape ; sh:targetClass eco:AccessRequirement ;
+  sh:closed true ; sh:ignoredProperties (rdf:type rdfs:label rdfs:comment) ;
+  sh:property [ sh:path eco:accessMechanism ; sh:minCount 1 ; sh:maxCount 1 ; sh:class eco:AccessMechanism ] ;
+  sh:property [ sh:path eco:accessTarget ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[A-Za-z0-9_.:-]+$" ] ;
+  sh:message "Access prerequisites carry public mechanism/target metadata only, never credential values." .

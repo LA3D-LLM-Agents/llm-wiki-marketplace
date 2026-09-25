@@ -74,3 +74,7 @@ resource-discovery edges. Activity survives container restarts and expires after
 seven days without a call. The server resolves public metadata from the federation
 index and distinguishes membership from caller authentication. Direct queries
 remain between the client and resource; query text/results are not reported.
+
+## Ontology discovery migration (0.7.0)
+
+Supports public snapshot schema 2 and pinned eco 0.2.0 validation. Update the plugin, rerun setup, and restart the agent session/direct connector. Existing policy and credentials are preserved. Discovery includes original skill metadata, service bindings, semantic entrypoints and access prerequisites. Advertisements do not grant additional permissions.

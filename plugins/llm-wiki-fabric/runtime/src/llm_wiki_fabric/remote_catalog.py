@@ -52,6 +52,8 @@ def fetch_snapshot(url):
 
 def merge_snapshot(local, snapshot):
     public = snapshot["catalog"]
+    if public.get("schema_version") == 2 and public.get("ontology_version") != "0.2.0":
+        raise ValueError("Unsupported discovery ontology version")
     revision = hashlib.sha256(json.dumps(public, sort_keys=True).encode()).hexdigest()
     if revision != snapshot["revision"]:
         raise ValueError("Invalid snapshot hash")
@@ -123,6 +125,8 @@ def policy_catalog(path, url):
 
 def catalog_from_policy(policy, snapshot):
     public = snapshot["catalog"]
+    if public.get("schema_version") == 2 and public.get("ontology_version") != "0.2.0":
+        raise ValueError("Unsupported discovery ontology version")
     revision = hashlib.sha256(json.dumps(public, sort_keys=True).encode()).hexdigest()
     if revision != snapshot["revision"]:
         raise ValueError("Invalid snapshot hash")

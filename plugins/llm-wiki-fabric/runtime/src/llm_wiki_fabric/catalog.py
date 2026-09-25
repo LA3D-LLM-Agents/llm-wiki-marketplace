@@ -13,8 +13,7 @@ from urllib.parse import urlsplit
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
-from rdflib import DCAT, RDF, RDFS, Graph, Namespace, URIRef
-from rdflib import Literal as Term
+from rdflib import RDF, RDFS, Namespace, URIRef
 
 ECO = Namespace("https://la3d-llm-agents.github.io/ns/eco#")
 FAB = Namespace("https://github.com/chrissweet/llm-wiki-fabric/ns#")
@@ -64,11 +63,31 @@ class SQLConnection(StrictModel):
     access: SSHAccess | None = None
 
 
+class Capability(StrictModel):
+    id: Identifier
+    name: str = Field(min_length=1, max_length=200)
+    description: str = Field(default="", max_length=4000)
+    tags: list[str] = Field(default_factory=list, max_length=100)
+
+
+class PublishedService(StrictModel):
+    id: Identifier
+    kind: Literal["AgentCard", "OpenAPI"]
+    url: str
+
+    @model_validator(mode="after")
+    def safe_url(self):
+        MCPConnection(kind="mcp", url=self.url, transport="streamable-http")
+        return self
+
+
 class Resource(StrictModel):
     id: Identifier
     label: str = Field(min_length=1, max_length=200)
     description: str = Field(min_length=1, max_length=2000)
     capabilities: list[Identifier] = Field(min_length=1)
+    capability_details: list[Capability] = Field(default_factory=list)
+    services: list[PublishedService] = Field(default_factory=list)
     semantic_entrypoint: Identifier
     connection: Annotated[MCPConnection | SQLConnection, Field(discriminator="kind")]
     allowed_tools: list[Identifier] = Field(default_factory=list)
@@ -80,6 +99,21 @@ class Resource(StrictModel):
 
     @model_validator(mode="after")
     def permissions(self):
+        if len(self.capabilities) != len(set(self.capabilities)):
+            raise ValueError("duplicate capability IDs")
+        if not self.capability_details:
+            self.capability_details = [Capability(id=cap, name=cap) for cap in self.capabilities]
+        detail_ids = [cap.id for cap in self.capability_details]
+        if len(detail_ids) != len(set(detail_ids)) or set(detail_ids) != set(self.capabilities):
+            raise ValueError("Capability details must match the advertised IDs exactly")
+        if any(
+            len(tag) > 200 or not tag.strip() for cap in self.capability_details for tag in cap.tags
+        ):
+            raise ValueError("Invalid capability tags")
+        if len({service.id for service in self.services}) != len(self.services):
+            raise ValueError("Duplicate service IDs")
+        if self.ontology_url:
+            MCPConnection(kind="mcp", url=self.ontology_url, transport="streamable-http")
         if self.connection.kind == "mcp":
             if not self.allowed_tools or self.allowed_tables:
                 raise ValueError("MCP resources need allowed_tools, not allowed_tables")
@@ -93,7 +127,8 @@ class Resource(StrictModel):
 
 
 class CatalogConfig(StrictModel):
-    schema_version: Literal[1]
+    schema_version: Literal[1, 2]
+    ontology_version: Literal["0.2.0"] = "0.2.0"
     resources: list[Resource] = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -135,35 +170,14 @@ class Catalog:
                 if not re.fullmatch(r"[a-zA-Z0-9_.:-]+", c.host):
                     raise FabricError("invalid_catalog", "Invalid PostgreSQL host")
         canonical = json.dumps(self.public_config(), sort_keys=True).encode()
-        self.revision = hashlib.sha256(canonical).hexdigest()
-        self.resources = {r.id: r for r in self.config.resources}
-        self.graph = Graph()
-        self.graph.bind("eco", ECO)
-        self.graph.bind("fabric", FAB)
-        self.graph.bind("dcat", DCAT)
-        for r in self.resources.values():
-            node = URIRef(BASE + r.id)
-            for predicate, value in [
-                (RDF.type, ECO.Connector),
-                (RDF.type, DCAT.DataService),
-                (RDFS.label, Term(r.label)),
-                (RDFS.comment, Term(r.description)),
-                (FAB.resourceId, Term(r.id)),
-                (FAB.kind, Term(r.connection.kind)),
-                (FAB.semanticEntrypoint, Term(r.semantic_entrypoint)),
-                (FAB.connection, Term(json.dumps(r.connection.model_dump()))),
-            ]:
-                self.graph.add((node, predicate, value))
-            if r.publisher_id:
-                self.graph.add((node, FAB.publisherId, Term(r.publisher_id)))
-            if r.ontology_url:
-                self.graph.add((node, FAB.ontology, URIRef(r.ontology_url)))
-            for cap in r.capabilities:
-                cap_node = URIRef(f"{BASE}{r.id}:capability:{cap}")
-                self.graph.add((node, ECO.hasCapability, cap_node))
-                self.graph.add((cap_node, RDF.type, ECO.Capability))
-                self.graph.add((cap_node, RDFS.label, Term(cap)))
-                self.graph.add((cap_node, ECO.providedBy, node))
+        revision = hashlib.sha256(canonical).hexdigest()
+        resources = {r.id: r for r in self.config.resources}
+        from .discovery_graph import build_graph, validate_graph
+
+        graph, discovery = build_graph(self.config.resources, self.public_config())
+        profile = validate_graph(graph)
+        self.revision, self.resources = revision, resources
+        self.graph, self.discovery, self.ontology_profile = graph, discovery, profile
 
     def get(self, resource_id: str, revision: str | None = None) -> Resource:
         if revision is not None and revision != self.revision:
@@ -185,7 +199,19 @@ class Catalog:
                 str(self.graph.value(c, RDFS.label))
                 for c in self.graph.objects(node, ECO.hasCapability)
             )
-            haystack = " ".join([label, description, *caps]).casefold()
+            resource_id = str(self.graph.value(node, FAB.resourceId))
+            details = [cap.model_dump() for cap in self.resources[resource_id].capability_details]
+            haystack = " ".join(
+                [
+                    label,
+                    description,
+                    *caps,
+                    *[
+                        " ".join([c["id"], c["name"], c["description"], *c["tags"]])
+                        for c in details
+                    ],
+                ]
+            ).casefold()
             matches = sum(word in haystack for word in words)
             if (kind is None or kind == resource_kind) and (not words or matches):
                 found.append(
@@ -194,7 +220,8 @@ class Catalog:
                         "label": label,
                         "description": description,
                         "kind": resource_kind,
-                        "capabilities": caps,
+                        "capabilities": self.resources[resource_id].capabilities,
+                        "capability_details": details,
                         "match_count": matches,
                     }
                 )
@@ -204,6 +231,7 @@ class Catalog:
             "resources": found,
             "status": "configured; availability and identity not verified",
             "descriptors": self.freshness(),
+            "ontology_profile": self.ontology_profile,
         }
 
     def identify(self, resource_id: str) -> dict:
@@ -213,7 +241,12 @@ class Catalog:
             "resource_id": resource_id,
             "revision": self.revision,
             "iri": str(node),
-            "connection": json.loads(str(self.graph.value(node, FAB.connection))),
+            **self.discovery[resource_id],
+            "capability_details": [
+                cap.model_dump() for cap in self.get(resource_id).capability_details
+            ],
+            "ontology_profile": self.ontology_profile,
+            "connection": self.get(resource_id).connection.model_dump(),
             "semantic_entrypoint": str(self.graph.value(node, FAB.semanticEntrypoint)),
             "identity_verified": False,
             "publisher_id": self.get(resource_id).publisher_id,
@@ -232,6 +265,7 @@ class Catalog:
 
     def public_config(self):
         config = self.config.model_dump()
+        config["schema_version"] = 2
         for resource in config["resources"]:
             connection = resource["connection"]
             if connection["kind"] == "postgresql":
@@ -283,18 +317,68 @@ class Catalog:
                         }
                     }
                 )
+            for relation, node_type in [
+                (ECO.hasService, "service"),
+                (ECO.hasSemanticEntrypoint, "semantic_entrypoint"),
+                (ECO.requiresAccess, "access_requirement"),
+            ]:
+                for target in sorted(self.graph.objects(node, relation), key=str):
+                    label = str(
+                        self.graph.value(target, RDFS.label) or str(target).rsplit(":", 1)[-1]
+                    )
+                    nodes.append(
+                        {
+                            "data": {
+                                "id": str(target),
+                                "resource_id": resource_id,
+                                "label": label,
+                                "type": node_type,
+                            }
+                        }
+                    )
+                    edges.append(
+                        {
+                            "data": {
+                                "id": str(node)
+                                + ":"
+                                + str(relation).split("#")[-1]
+                                + ":"
+                                + str(target),
+                                "source": str(node),
+                                "target": str(target),
+                                "predicate": str(relation),
+                                "label": str(relation).split("#")[-1],
+                            }
+                        }
+                    )
+            for entry in self.graph.objects(node, ECO.hasSemanticEntrypoint):
+                for endpoint in self.graph.objects(entry, ECO.invokedThrough):
+                    edges.append(
+                        {
+                            "data": {
+                                "id": str(entry) + ":invoked-through",
+                                "source": str(entry),
+                                "target": str(endpoint),
+                                "predicate": str(ECO.invokedThrough),
+                                "label": "invoked through",
+                            }
+                        }
+                    )
         return {
             "revision": self.revision,
             "nodes": nodes,
             "edges": edges,
-            "projection": "Resource and capability relationships; resource-scoped capabilities are not semantic equivalence claims.",
+            "ontology_profile": self.ontology_profile,
+            "projection": "Resource, capability, service, semantic-entrypoint and prerequisite metadata; no source domain ontology is imported.",
         }
 
     def snapshot(self):
         return {
             "revision": self.revision,
             "catalog": self.public_config(),
+            "discovery": self.discovery,
             "descriptors": self.freshness(),
+            "ontology_profile": self.ontology_profile,
         }
 
     def public_identify(self, resource_id):

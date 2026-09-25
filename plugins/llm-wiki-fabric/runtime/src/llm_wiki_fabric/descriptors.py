@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from .catalog import FabricError, Resource
+from .catalog import Catalog, CatalogConfig, FabricError, Resource
 
 MAX_BYTES = 1_000_000
 TTL = 3600
@@ -68,7 +68,27 @@ def normalize(seed, bundle, profiles):
         metadata = dict(
             label=card["name"],
             description=card["description"],
-            capabilities=sorted({tag for s in card["skills"] for tag in s["tags"]}),
+            capabilities=[skill["id"] for skill in card["skills"]],
+            capability_details=[
+                dict(
+                    id=skill["id"],
+                    name=skill["name"],
+                    description=skill.get("description", ""),
+                    tags=skill.get("tags", []),
+                )
+                for skill in card["skills"]
+            ],
+            services=[
+                dict(
+                    id=s["type"].lower()
+                    + "-"
+                    + hashlib.sha256(s["serviceEndpoint"].encode()).hexdigest()[:12],
+                    kind=s["type"],
+                    url=https_url(s["serviceEndpoint"], origin),
+                )
+                for s in did["service"]
+                if s["type"] in {"AgentCard", "OpenAPI"}
+            ],
             semantic_entrypoint=seed["semantic_entrypoint"],
             publisher_id=did["id"],
             ontology_url=service("PublishedOntology"),
@@ -96,6 +116,7 @@ def normalize(seed, bundle, profiles):
             "label",
             "description",
             "capabilities",
+            "capability_details",
             "semantic_entrypoint",
             "data_dictionary",
             "connection",
@@ -103,14 +124,19 @@ def normalize(seed, bundle, profiles):
             raise ValueError("Unexpected descriptor fields")
     else:
         raise ValueError("Unknown descriptor format")
-    return Resource.model_validate(
+    resource = Resource.model_validate(
         dict(
             metadata,
             id=seed["id"],
             allowed_tools=seed.get("allowed_tools", []),
             allowed_tables=seed.get("allowed_tables", []),
         )
-    ).model_dump()
+    )
+    # Validate the candidate graph before accepting a newly fetched descriptor cache.
+    candidate = Catalog.__new__(Catalog)
+    candidate.config = CatalogConfig(schema_version=2, resources=[resource])
+    candidate._build()
+    return resource.model_dump()
 
 
 def load_seed(seed, base, profiles, cache_dir, refresh, offline):
@@ -148,7 +174,7 @@ def load_seed(seed, base, profiles, cache_dir, refresh, offline):
         normalize(seed, previous["bundle"], profiles)
         if not isinstance(previous["fetched_at"], (int, float)):
             raise ValueError("Invalid timestamp")
-    except (OSError, ValueError, KeyError, TypeError):
+    except (OSError, ValueError, KeyError, TypeError, FabricError):
         previous = None
 
     def cached(state):
@@ -172,7 +198,7 @@ def load_seed(seed, base, profiles, cache_dir, refresh, offline):
             raise ValueError("Missing or ambiguous agent card")
         bundle = {"did": did, "card": fetch(https_url(cards[0], source))}
         normalized = normalize(seed, bundle, profiles)
-    except (httpx.HTTPError, OSError, ValueError, KeyError, TypeError):
+    except (httpx.HTTPError, OSError, ValueError, KeyError, TypeError, FabricError):
         if previous:
             result, status = cached("stale")
             status["refresh_error"] = "Publisher refresh failed validation or retrieval"

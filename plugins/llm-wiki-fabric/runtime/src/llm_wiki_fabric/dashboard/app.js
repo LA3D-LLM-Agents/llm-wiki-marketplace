@@ -98,7 +98,9 @@ function renderDetails() {
   container.append(connectionFields, el('h4', 'CAPABILITIES', 'section-label'));
   const chips = el('div', undefined, 'chips');
   for (const capability of resource.capabilities) {
-    const button = el('button', capability); button.type = 'button';
+    const detail = resource.capability_details?.find(c => c.id === capability);
+    const button = el('button', detail?.name || capability); button.type = 'button';
+    button.title = detail?.description || capability;
     button.addEventListener('click', () => { $('search').value = capability; applyFilters(); }); chips.append(button);
   }
   container.append(chips, el('h4', 'DESCRIPTOR', 'section-label'));
@@ -110,11 +112,26 @@ function renderDetails() {
   if (Number.isFinite(status.age_seconds)) field(descriptorFields, 'Age', `${Math.floor(status.age_seconds / 60)} minutes`);
   container.append(descriptorFields);
   if (status.state === 'local') container.append(el('p', '“Server-local” means the descriptor is maintained on fabric. It does not mean the database runs on your computer.', 'notice'));
+  const discovery = catalog.discovery?.[resource.id];
+  if (discovery) {
+    container.append(el('h4', 'DISCOVERY MODEL', 'section-label'));
+    const model = el('dl');
+    field(model, 'Fabric ontology', catalog.ontology_profile?.version);
+    field(model, 'Graph validation', catalog.ontology_profile?.validation);
+    field(model, 'Consumption', discovery.consumption_mode);
+    for (const entry of discovery.semantic_entrypoints) field(model, entry.kind, `${entry.tool_name} · ${entry.execution_location}`);
+    for (const requirement of discovery.access_requirements) field(model, requirement.mechanism, requirement.target);
+    container.append(model, el('p', 'Capabilities are advertised by the resource. They do not grant access or imply that every operation is supported by this client.', 'notice'));
+    const services = el('details'); services.append(el('summary', 'Advertised services'));
+    const serviceFields = el('dl');
+    for (const service of discovery.services) field(serviceFields, `${service.kind}${service.transport ? ' · ' + service.transport : ''}`, service.url || service.binding, Boolean(service.url));
+    services.append(serviceFields); container.append(services);
+  }
   const details = el('details'); details.append(el('summary', 'Published descriptor & permissions'), el('pre', JSON.stringify(resource, null, 2))); container.append(details);
 }
 function matches() {
   const query = $('search').value.toLowerCase().trim(), kind = $('kind').value;
-  return catalog.catalog.resources.filter(r => (!kind || r.connection.kind === kind) && `${r.id} ${r.label} ${r.description} ${r.capabilities.join(' ')}`.toLowerCase().includes(query));
+  return catalog.catalog.resources.filter(r => (!kind || r.connection.kind === kind) && `${r.id} ${r.label} ${r.description} ${r.capabilities.join(' ')} ${(r.capability_details || []).map(c => [c.name, c.description, ...c.tags].join(' ')).join(' ')}`.toLowerCase().includes(query));
 }
 function applyFilters() {
   if (!catalog) return;
@@ -146,7 +163,8 @@ function renderGraph() {
   cy = cytoscape({container: $('graph'), elements: [...graph.nodes, ...graph.edges], minZoom: .15, maxZoom: 3, wheelSensitivity: .2,
     style: [
       {selector:'node', style:{label:'data(label)', 'font-family':'system-ui, sans-serif', 'font-size':13, color:'#2b5364', 'text-wrap':'wrap', 'text-max-width':130, 'text-valign':'center', 'text-halign':'center', width:105, height:38, 'background-color':'#e0f2ef', 'border-color':'#8fc9c1', 'border-width':1.5, shape:'round-rectangle'}},
-      {selector:'node[type="resource"]', style:{width:170, height:64, 'background-color':'#285ddd', color:'#fff', 'border-color':'#1d49b3', 'font-size':15, 'font-weight':650, 'text-max-width':150}},
+      {selector:'node[type="resource"]', style:{width:170, height:64, 'background-color':'#285ddd', color:'#fff', 'border-color':'#1d49b3', 'font-size':15, 'font-weight':600, 'text-max-width':150}},
+      {selector:'node[type="service"], node[type="semantic_entrypoint"], node[type="access_requirement"]', style:{'background-color':'#eef1f7', 'border-color':'#a9b6c8', color:'#3b526d', shape:'round-rectangle', 'font-size':11, width:110}},
       {selector:'node[type="agent"]', style:{shape:'ellipse', width:150, height:70, 'background-color':'#7155ac', color:'#fff', 'border-color':'#563b90'}},
       {selector:'edge', style:{width:1.4, 'line-color':'#b2c4d9', 'target-arrow-shape':'triangle', 'target-arrow-color':'#b2c4d9', 'arrow-scale':.7, 'curve-style':'bezier'}},
       {selector:'edge[type="discovered"]', style:{'line-style':'dashed', 'line-color':'#957cba', 'target-arrow-color':'#957cba', label:'discovered', 'font-size':10, 'text-background-color':'#fff', 'text-background-opacity':.85}},

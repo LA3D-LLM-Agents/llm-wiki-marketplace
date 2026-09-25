@@ -1,0 +1,255 @@
+# eco.ttl — the ecosystem structural upper ontology.
+#
+# THIN and STRUCTURAL by design: it defines the *shape* of the fabric (entities,
+# edges, controlled vocabularies), not the *meaning* of any domain. Every term is
+# justified by a discovery competency question; see tests/queries and README.md.
+#
+# Subclass/subproperty entailments require reasoning, materialization, or explicit
+# schema paths in queries. Loading this file alone does not materialize instances.
+# Domain ontologies remain source-owned external references; no owl:imports.
+
+@prefix eco:  <https://la3d-llm-agents.github.io/ns/eco#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dct:  <http://purl.org/dc/terms/> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+<https://la3d-llm-agents.github.io/ns/eco> a owl:Ontology ;
+    owl:versionIRI <https://la3d-llm-agents.github.io/ns/versions/0.2.0/eco.ttl> ;
+    owl:versionInfo "0.2.0" ;
+    dct:modified "2026-09-24"^^xsd:date ;
+    rdfs:label "Ecosystem structural upper ontology (eco)" ;
+    rdfs:comment "A thin structural upper ontology composing PROV-O, DCAT and SKOS. Shape, not meaning." .
+
+########################################################################
+## Classes
+########################################################################
+
+eco:Participant a owl:Class ;
+    rdfs:label "Participant" ;
+    rdfs:comment "An identified participant in the fabric: a connector, a bundle, or a federation. Stable IRIs are required by discovery profiles; a publisher DID and its verification are separate metadata, not automatically the identity of every hosted resource." .
+
+eco:Connector a owl:Class ;
+    rdfs:subClassOf eco:Participant , dcat:DataService ;
+    rdfs:label "Connector" ;
+    rdfs:comment "An agent wrapping an external source read-only (API or DB), declaring capabilities." .
+
+eco:Bundle a owl:Class ;
+    rdfs:subClassOf eco:Participant , dcat:Dataset ;
+    rdfs:label "Bundle" ;
+    rdfs:comment "Published knowledge (a wiki); discovered, cloned, cited. The ask target." .
+
+eco:Federation a owl:Class ;
+    rdfs:subClassOf eco:Participant , dcat:Catalog ;
+    rdfs:label "Federation" ;
+    rdfs:comment "A seed catalog peers harvest from." .
+
+eco:Capability a owl:Class ;
+    rdfs:label "Capability" ;
+    rdfs:comment "A discoverable ability (advertised via an A2A card's skills), delivery-mode-agnostic." .
+
+eco:Answer a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Answer" ;
+    rdfs:comment "A produced result carrying a provenance chain, attribution, a commit pin, and a file-back target." .
+
+eco:ServiceEndpoint a owl:Class ;
+    rdfs:label "Service endpoint" ;
+    rdfs:comment "An advertised service endpoint or client-side invocation binding. It may be described by a DID document or resource descriptor; its advertisement does not prove caller authorization or availability." .
+eco:CloneEndpoint a owl:Class ; rdfs:subClassOf eco:ServiceEndpoint ; rdfs:label "Clone endpoint" ;
+    rdfs:comment "git clone target — how an ask reaches a bundle (no live infra)." .
+eco:AgentCard    a owl:Class ; rdfs:subClassOf eco:ServiceEndpoint ; rdfs:label "A2A agent-card" ;
+    rdfs:comment "A capability advertisement, including a JSON agent card or a Markdown/YAML wiki card. Its format and location do not establish a live callable A2A endpoint." .
+eco:OpenAPI      a owl:Class ; rdfs:subClassOf eco:ServiceEndpoint ; rdfs:label "OpenAPI contract" .
+
+eco:Ontology a owl:Class ;
+    rdfs:subClassOf eco:SemanticEntrypoint ;
+    rdfs:label "Source ontology" ;
+    rdfs:comment "A source's small ontology — the reason-over-it-without-guessing layer." .
+eco:PublishedOntology a owl:Class ; rdfs:subClassOf eco:Ontology ; rdfs:label "Published ontology" ;
+    rdfs:comment "Published by the source itself (e.g. PAD's pad: OWL)." .
+eco:DerivedOntology   a owl:Class ; rdfs:subClassOf eco:Ontology ; rdfs:label "Derived ontology" ;
+    rdfs:comment "Structural skeleton derived from a schema (db_ontology); semantics human-authored." .
+
+eco:Broker a owl:Class ;
+    rdfs:label "Broker" ;
+    rdfs:comment "Control-plane component that holds a secret and fetches (Agent-Source-Auth)." .
+
+# Controlled-vocabulary classes are SKOS concepts.
+eco:Maturity        a owl:Class ; rdfs:subClassOf skos:Concept ; rdfs:label "Maturity" .
+eco:Visibility      a owl:Class ; rdfs:subClassOf skos:Concept ; rdfs:label "Visibility" .
+eco:ConsumptionMode a owl:Class ; rdfs:subClassOf skos:Concept ; rdfs:label "Consumption mode" .
+
+# Layer 3 — VC-gated consumption.
+eco:CredentialIssuer a owl:Class ; rdfs:subClassOf eco:Participant ; rdfs:label "Credential issuer" ;
+    rdfs:comment "A group/lab that issues Verifiable Credentials authorizing consumption of gated resources." .
+eco:CredentialRequirement a owl:Class ; rdfs:label "Credential requirement" ;
+    rdfs:comment "The gate on a restricted resource: a scope a presented VC must grant, plus the issuer(s) trusted to grant it." .
+
+########################################################################
+## Properties
+########################################################################
+
+eco:memberOf a owl:ObjectProperty ;
+    rdfs:domain eco:Participant ; rdfs:range eco:Federation ; rdfs:label "member of" .
+
+eco:hasCapability a owl:ObjectProperty ;
+    rdfs:domain eco:Participant ; rdfs:range eco:Capability ;
+    owl:inverseOf eco:providedBy ; rdfs:label "has capability" .
+eco:providedBy a owl:ObjectProperty ;
+    rdfs:domain eco:Capability ; rdfs:range eco:Participant ; rdfs:label "provided by" .
+
+eco:hasService a owl:ObjectProperty ;
+    rdfs:domain eco:Participant ; rdfs:range eco:ServiceEndpoint ;
+    rdfs:comment "Kin to dcat:service and to a DID-document service entry." ; rdfs:label "has service" .
+
+eco:hasOntology a owl:ObjectProperty ;
+    rdfs:subPropertyOf eco:hasSemanticEntrypoint ;
+    rdfs:domain eco:Participant ; rdfs:range eco:Ontology ; rdfs:label "has ontology" .
+
+# Polymorphic (borne by both participants and capabilities): no rdfs:domain, on purpose.
+eco:hasMaturity a owl:ObjectProperty ;
+    rdfs:range eco:Maturity ; rdfs:label "has maturity" ;
+    rdfs:comment "Only eco:Production is authoritative; authority propagates along provenance." .
+eco:hasVisibility a owl:ObjectProperty ;
+    rdfs:range eco:Visibility ; rdfs:label "has visibility" ;
+    rdfs:comment "Kin to dct:accessRights / an ODRL policy constraint." .
+
+eco:consumptionMode a owl:ObjectProperty ;
+    rdfs:domain eco:Participant ; rdfs:range eco:ConsumptionMode ; rdfs:label "consumption mode" .
+eco:reachableVia a owl:ObjectProperty ;
+    rdfs:domain eco:Connector ; rdfs:range eco:Broker ; rdfs:label "reachable via" .
+
+eco:filedInto a owl:ObjectProperty ;
+    rdfs:domain eco:Answer ; rdfs:range eco:Bundle ; rdfs:label "filed into" ;
+    rdfs:comment "The bundle an answer is written into (Stage 6)." .
+
+eco:keyword a owl:DatatypeProperty ;
+    rdfs:domain eco:Capability ; rdfs:range xsd:string ; rdfs:label "keyword" .
+eco:atCommit a owl:DatatypeProperty ;
+    rdfs:domain eco:Answer ; rdfs:range xsd:string ; rdfs:label "at commit" ;
+    rdfs:comment "Commit pin: prov:wasDerivedFrom <bundle>@<commit> as a literal." .
+eco:rank a owl:DatatypeProperty ;
+    rdfs:domain eco:Visibility ; rdfs:range xsd:integer ; rdfs:label "openness rank" ;
+    rdfs:comment "Lower = more open; a target more open than a source permits is a leak." .
+
+eco:signatureVerified a owl:DatatypeProperty ;
+    rdfs:domain eco:Participant ; rdfs:range xsd:boolean ; rdfs:label "signature verified" ;
+    rdfs:comment "Harvest-time: the participant's signed agent-card (compact JWS) verified against the Ed25519 key in its DID document. The line between 'resolves' and 'verifiable'." .
+
+eco:requiresCredential a owl:ObjectProperty ;
+    rdfs:domain eco:Capability ; rdfs:range eco:CredentialRequirement ; rdfs:label "requires credential" ;
+    rdfs:comment "Consumption is VC-gated: a valid Verifiable Credential (verified against the trusted issuer's DID key, subject-bound, in-scope, unexpired) must be presented before the resource is served." .
+eco:scope a owl:DatatypeProperty ;
+    rdfs:domain eco:CredentialRequirement ; rdfs:range xsd:string ; rdfs:label "required scope" .
+eco:trustedIssuer a owl:ObjectProperty ;
+    rdfs:domain eco:CredentialRequirement ; rdfs:range eco:CredentialIssuer ; rdfs:label "trusted issuer" .
+
+########################################################################
+## Controlled vocabularies (SKOS concept schemes)
+########################################################################
+
+eco:MaturityScheme a skos:ConceptScheme ;
+    rdfs:label "Component maturity" ;
+    rdfs:comment "Only eco:Production is authoritative (Component-Maturity)." .
+eco:Production    a eco:Maturity ; skos:inScheme eco:MaturityScheme ; skos:prefLabel "production" ; rdfs:label "production" .
+eco:Beta          a eco:Maturity ; skos:inScheme eco:MaturityScheme ; skos:prefLabel "beta" ; rdfs:label "beta" .
+eco:InDevelopment a eco:Maturity ; skos:inScheme eco:MaturityScheme ; skos:prefLabel "in-development" ; rdfs:label "in-development" .
+
+eco:VisibilityScheme a skos:ConceptScheme ;
+    rdfs:label "Visibility ladder (public < institutional < private < commercial)" .
+eco:Public        a eco:Visibility ; skos:inScheme eco:VisibilityScheme ; skos:prefLabel "public"        ; rdfs:label "public"        ; eco:rank 0 .
+eco:Institutional a eco:Visibility ; skos:inScheme eco:VisibilityScheme ; skos:prefLabel "institutional" ; rdfs:label "institutional" ; eco:rank 1 .
+eco:Private       a eco:Visibility ; skos:inScheme eco:VisibilityScheme ; skos:prefLabel "private"       ; rdfs:label "private"       ; eco:rank 2 .
+eco:Commercial    a eco:Visibility ; skos:inScheme eco:VisibilityScheme ; skos:prefLabel "commercial"    ; rdfs:label "commercial"    ; eco:rank 3 .
+
+eco:ConsumptionScheme a skos:ConceptScheme ; rdfs:label "Consumption modes" .
+eco:CloneAndInvoke     a eco:ConsumptionMode ; skos:inScheme eco:ConsumptionScheme ; skos:prefLabel "clone-and-invoke"    ; rdfs:label "clone-and-invoke" .
+eco:BrokeredConnector  a eco:ConsumptionMode ; skos:inScheme eco:ConsumptionScheme ; skos:prefLabel "brokered-connector" ; rdfs:label "brokered-connector" .
+
+# Broker individuals (not a SKOS scheme — brokers are components, not concepts).
+eco:OAuthBroker     a eco:Broker ; rdfs:label "OAuth broker" .
+eco:ReadOnlyDBBroker a eco:Broker ; rdfs:label "read-only DB broker" .
+
+########################################################################
+## Discovery profile additions (0.2.0)
+## Requirements and acceptance queries: README.md, tests/queries/*.rq
+########################################################################
+
+# Consumption remains direct; resource data is not routed through fabric.
+eco:DirectAccess a eco:ConsumptionMode ;
+    skos:inScheme eco:ConsumptionScheme ;
+    skos:prefLabel "direct-access" ; rdfs:label "direct access" ;
+    rdfs:comment "After discovery, the consumer or its local connector queries the resource directly. The fabric does not proxy the resource data or hold source credentials." .
+
+eco:MCPEndpoint a owl:Class ; rdfs:subClassOf eco:ServiceEndpoint ;
+    rdfs:label "MCP endpoint" ;
+    rdfs:comment "An MCP service binding, distinguished from OpenAPI and capability advertisements. A client-side stdio binding has no fabricated HTTP URL." .
+eco:serviceURL a owl:DatatypeProperty ;
+    rdfs:domain eco:ServiceEndpoint ; rdfs:range xsd:anyURI ;
+    rdfs:label "service URL" ;
+    rdfs:comment "Public invocation or retrieval URL for this endpoint, without credentials. A locally launched stdio binding can omit it." .
+eco:transport a owl:DatatypeProperty ;
+    rdfs:domain eco:ServiceEndpoint ; rdfs:range xsd:string ;
+    rdfs:label "transport" ;
+    rdfs:comment "Transport name; the 0.2 discovery profile supports MCP streamable-http and stdio. Other transports require an explicit profile extension." .
+
+# Links/invocation references only: domain classes and research data stay at source.
+eco:SemanticEntrypoint a owl:Class ; rdfs:label "semantic entrypoint" ;
+    rdfs:comment "A reference explaining how to learn a source's structure or meaning: a document and/or a named tool. Not an import of that source's domain model." .
+eco:DataDictionary a owl:Class ; rdfs:subClassOf eco:SemanticEntrypoint ;
+    rdfs:label "data dictionary" ;
+    rdfs:comment "A source's dictionary of fields and meanings; not necessarily an RDF/OWL ontology." .
+eco:LiveSchema a owl:Class ; rdfs:subClassOf eco:SemanticEntrypoint ;
+    rdfs:label "live schema entrypoint" ;
+    rdfs:comment "An entrypoint for inspecting a source's current schema without retrieving research rows." .
+eco:hasSemanticEntrypoint a owl:ObjectProperty ;
+    rdfs:domain eco:Participant ; rdfs:range eco:SemanticEntrypoint ;
+    rdfs:label "has semantic entrypoint" .
+eco:documentURL a owl:DatatypeProperty ;
+    rdfs:domain eco:SemanticEntrypoint ; rdfs:range xsd:anyURI ;
+    rdfs:label "semantic document URL" .
+eco:toolName a owl:DatatypeProperty ;
+    rdfs:domain eco:SemanticEntrypoint ; rdfs:range xsd:string ;
+    rdfs:label "semantic tool name" ;
+    rdfs:comment "The exact advertised tool to inspect. This name does not grant permission to invoke it." .
+eco:invokedThrough a owl:ObjectProperty ;
+    rdfs:domain eco:SemanticEntrypoint ; rdfs:range eco:MCPEndpoint ;
+    rdfs:label "invoked through" .
+eco:ExecutionLocation a owl:Class ; rdfs:subClassOf skos:Concept ;
+    rdfs:label "execution location" .
+eco:ExecutionLocationScheme a skos:ConceptScheme ; rdfs:label "Tool execution locations" .
+eco:ClientSide a eco:ExecutionLocation ; skos:inScheme eco:ExecutionLocationScheme ;
+    skos:prefLabel "client-side" ; rdfs:label "client-side" .
+eco:ResourceSide a eco:ExecutionLocation ; skos:inScheme eco:ExecutionLocationScheme ;
+    skos:prefLabel "resource-side" ; rdfs:label "resource-side" .
+eco:executionLocation a owl:ObjectProperty ;
+    rdfs:domain eco:SemanticEntrypoint ; rdfs:range eco:ExecutionLocation ;
+    rdfs:label "execution location" ;
+    rdfs:comment "Where the advertised semantic tool runs. Client-side connector execution is distinct from the hosted fabric service." .
+
+# Prerequisite metadata, deliberately distinct from the existing VC gate vocabulary.
+eco:AccessRequirement a owl:Class ; rdfs:label "access prerequisite" ;
+    rdfs:comment "An advertised ordinary access prerequisite. No credential value, grant or assertion that a caller satisfies it. Absence does not establish anonymous access." .
+eco:AccessMechanism a owl:Class ; rdfs:subClassOf skos:Concept ;
+    rdfs:label "access mechanism" .
+eco:AccessMechanismScheme a skos:ConceptScheme ; rdfs:label "Ordinary access mechanisms" .
+eco:SSHAuthentication a eco:AccessMechanism ; skos:inScheme eco:AccessMechanismScheme ;
+    skos:prefLabel "ssh-authentication" ; rdfs:label "SSH authentication" .
+eco:DatabaseAuthentication a eco:AccessMechanism ; skos:inScheme eco:AccessMechanismScheme ;
+    skos:prefLabel "database-authentication" ; rdfs:label "database authentication" .
+eco:requiresAccess a owl:ObjectProperty ;
+    rdfs:domain eco:Participant ; rdfs:range eco:AccessRequirement ;
+    rdfs:label "requires access prerequisite" ;
+    rdfs:comment "Advertised prerequisite for using a participant. Capability-specific and per-user policy evaluation remain separate." .
+eco:accessMechanism a owl:ObjectProperty ;
+    rdfs:domain eco:AccessRequirement ; rdfs:range eco:AccessMechanism ;
+    rdfs:label "access mechanism" .
+eco:accessTarget a owl:DatatypeProperty ;
+    rdfs:domain eco:AccessRequirement ; rdfs:range xsd:string ;
+    rdfs:label "access target" ;
+    rdfs:comment "Public host/database identifier identifying where the prerequisite applies. Never a password, token, key, connection secret or credential-bearing URL." .
