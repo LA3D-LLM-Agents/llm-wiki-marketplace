@@ -84,6 +84,7 @@ def normalize(seed, bundle, profiles):
                     + "-"
                     + hashlib.sha256(s["serviceEndpoint"].encode()).hexdigest()[:12],
                     kind=s["type"],
+                    version=card.get("version") if s["type"] == "AgentCard" else None,
                     url=https_url(s["serviceEndpoint"], origin),
                 )
                 for s in did["service"]

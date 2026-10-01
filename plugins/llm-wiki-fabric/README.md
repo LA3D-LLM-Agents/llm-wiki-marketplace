@@ -1,6 +1,6 @@
 # llm-wiki-fabric
 
-Version 0.6.0, shared by Codex and Claude Code.
+Version 0.8.0, shared by Codex and Claude Code.
 
 Discovery uses https://fabric.crc.nd.edu/mcp. The local connector calls fabric_catalog through the same MCP endpoint at startup; resource metadata, SQL destination and SSH routing
 come from descriptors. No client resource catalog is installed or read.
@@ -48,7 +48,7 @@ catalog changes; there is no background refresh or identity verification.
 
 ## Maintenance
 
-Runtime provenance is recorded in runtime/UPSTREAM.json (upstream a431949).
+Runtime provenance is recorded in runtime/UPSTREAM.json (pinned source commit).
 Both manifests use the same release. Validate the plugin and run:
 
 ```sh
@@ -78,3 +78,16 @@ remain between the client and resource; query text/results are not reported.
 ## Ontology discovery migration (0.7.0)
 
 Supports public snapshot schema 2 and pinned eco 0.2.0 validation. Update the plugin, rerun setup, and restart the agent session/direct connector. Existing policy and credentials are preserved. Discovery includes original skill metadata, service bindings, semantic entrypoints and access prerequisites. Advertisements do not grant additional permissions.
+
+## Structured agent cards and eco 0.3.0 (0.8.0)
+
+Accepts both eco 0.2.0 and 0.3.0 catalogs and legacy, transitional and structured
+agent cards. Agent identities, card documents, skill bundles, invocation interfaces
+and public sessions have distinct graph nodes. Upgrade clients and rerun setup
+before deploying an eco 0.3.0 server, then restart connectors to rediscover its
+catalog revision. Old 0.7.0 runtimes cannot read the new catalog.
+
+The skill includes OKN discovery and cross-graph recipes. New installations include
+OKN in the default client policy. Existing policies are preserved: operators must
+explicitly add the OKN host and desired tool permissions from runtime/client-policy.yaml
+if those permissions are not already present. Credentials remain unchanged.

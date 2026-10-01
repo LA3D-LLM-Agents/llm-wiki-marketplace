@@ -3,6 +3,7 @@ trusted_catalogs:
 - https://fabric.crc.nd.edu/mcp
 allowed_mcp_hosts:
 - pad.crc.nd.edu
+- apps.okn.us
 allowed_ssh_hosts:
 - fabric.crc.nd.edu
 allowed_tools:
@@ -13,6 +14,15 @@ allowed_tools:
 - get_api_ld_v3_cards_by_project_project_name_sample_id_ranges
 - get_api_ld_v3_cards_by_sample_sample_id
 - get_api_ld_v3_layout_layout_name
+- get_server_info
+- list_kgs
+- describe_kg
+- get_kg_version
+- get_schema
+- probe_namespaces
+- sparql_query
+- list_crosswalks
+- get_join_strategy
 allowed_tables:
 - publications_disease
 - publications_publication

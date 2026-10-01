@@ -1,4 +1,4 @@
-# Version 0.2.0 discovery profile. Separate from legacy answer/maturity policy.
+# Version 0.3.0 discovery profile. Separate from legacy answer/maturity policy.
 @prefix eco: <https://la3d-llm-agents.github.io/ns/eco#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -60,6 +60,29 @@ eco:DiscoverySemanticShape a sh:NodeShape ; sh:targetClass eco:SemanticEntrypoin
 
 eco:DiscoveryAccessShape a sh:NodeShape ; sh:targetClass eco:AccessRequirement ;
   sh:closed true ; sh:ignoredProperties (rdf:type rdfs:label rdfs:comment) ;
+  sh:property [ sh:path eco:requiredFor ; sh:class eco:Participant ] ;
   sh:property [ sh:path eco:accessMechanism ; sh:minCount 1 ; sh:maxCount 1 ; sh:class eco:AccessMechanism ] ;
   sh:property [ sh:path eco:accessTarget ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[A-Za-z0-9_.:-]+$" ] ;
   sh:message "Access prerequisites carry public mechanism/target metadata only, never credential values." .
+
+
+# Agent cards are publication documents, not service bindings.
+eco:DiscoveryAgentShape a sh:NodeShape ; sh:targetClass eco:Agent ;
+  sh:property [ sh:path dct:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+  sh:property [ sh:path eco:hasCard ; sh:minCount 1 ; sh:class eco:AgentCard ] ;
+  sh:property [ sh:path eco:hasKnowledgeBundle ; sh:class eco:Bundle ] .
+eco:DiscoveryCardShape a sh:NodeShape ; sh:targetClass eco:AgentCard ;
+  sh:nodeKind sh:IRI ;
+  sh:not [ sh:class eco:ServiceEndpoint ] ;
+  sh:property [ sh:path eco:describesAgent ; sh:minCount 1 ; sh:maxCount 1 ; sh:class eco:Agent ] ;
+  sh:property [ sh:path eco:documentURL ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:anyURI ; sh:pattern "^https://[^/?#@]+(/[^?#]*)?$" ] ;
+  sh:property [ sh:path dct:format ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+  sh:property [ sh:path dct:hasVersion ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+  sh:property [ sh:path eco:serviceURL ; sh:maxCount 0 ] .
+eco:DiscoverySessionShape a sh:NodeShape ; sh:targetClass eco:AgentSession ;
+  sh:nodeKind sh:IRI ;
+  sh:property [ sh:path eco:sessionOfAgent ; sh:minCount 1 ; sh:maxCount 1 ; sh:class eco:Agent ] .
+eco:DiscoveryA2AShape a sh:NodeShape ; sh:targetClass eco:A2AEndpoint ;
+  sh:property [ sh:path eco:serviceURL ; sh:minCount 1 ] ;
+  sh:property [ sh:path eco:transport ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+  sh:property [ sh:path dct:hasVersion ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] .

@@ -1,6 +1,6 @@
 ---
 name: fabric-query
-description: Discover research resources through the llm-wiki fabric and query PAD MCP or the rare-disease PostgreSQL database directly. Use for PAD cards/layouts or rare-disease publication and clinical-trial data.
+description: Discover research resources through the llm-wiki fabric and query PAD, OKN knowledge graphs, or the rare-disease PostgreSQL database directly. Use for PAD cards/layouts, RDKG disease identifiers and phenotypes, or rare-disease publication and clinical-trial data.
 ---
 
 # Discover and query research resources
@@ -20,6 +20,8 @@ Before the first discovery call in each conversation/project session, announce t
 3. Disclose detail only when needed:
    - MCP resource: call `resource_tools` for allowed tool schemas; use `resource_call` to invoke one. For PAD, load `download_ontology` before interpreting its data, then follow the discovered query schemas.
    - PostgreSQL resource: call `db_schema` to see the resource data dictionary, approved columns and foreign keys, then `db_query`. Named parameters use `%(name)s` plus a parameters object. The connector supports SELECT, joins, aggregates and CTEs over the approved research tables, not unrestricted SQL.
+   - OKN resource (`okn`): use `list_kgs` to locate the graph and its named-graph IRI, `describe_kg` for scope, and `get_schema(shortname="rdkg")` before querying the initial RDKG use case. Use `get_kg_version` for graph provenance and `probe_namespaces` before assuming an identifier namespace. Send bounded SELECT/ASK queries through `sparql_query`, with an explicit `GRAPH <...>` clause. A shared service exposes other graphs; the resource name is not a graph access restriction. Inspect the returned payload for `error` even if the MCP call succeeds. The connector opens a new remote session per call, so OKN session transcripts are not preserved; retain query text, graph/version and results locally when needed. Do not assume an identifier join with our PostgreSQL database has been established.
+   - For OKN cross-graph questions, use `list_crosswalks(include_examples=true)` to discover candidate connections, then `get_join_strategy(kg_a=..., kg_b=...)` for the full recipe (omit `kg_b` to explore one graph). Inspect the participating schemas and returned verification date. Run the supplied `skeleton_query` through `sparql_query` to check the join before adapting it; preserve identifier rewrites and any complementary join routes. `known_non_join` describes a checked failure; `unknown` means no stored recipe, not proof that no join exists. Report historical verified counts separately from current results. Taxonomy overlaps can distinguish exact IDs, directional clade matches and label matches; preserve those distinctions. These recipes cover OKN graphs, not automatic joins to our PostgreSQL database.
 4. Start with small samples. For totals, use SQL aggregates or the source's total metadata, or retrieve all relevant pages; do not treat a limited result as complete. Check `truncated` for SQL and `returned`/`totalItems` for PAD.
 5. Attribute answers to the resource and query time, retaining entity identifiers. Report tool errors instead of filling gaps from memory.
 

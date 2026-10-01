@@ -87,9 +87,10 @@ def discovery_server(
         """Get the complete public descriptor snapshot for connector startup: routing, dictionaries, permissions, freshness and revision. Contains no credentials."""
         return catalog.snapshot()
 
-    @mcp.tool(annotations=READ)
+    @mcp.tool(annotations=REMOTE_READ)
+    @guarded
     def fabric_graph() -> dict[str, Any]:
-        """Get resource/capability and announced-agent nodes, with observed discovery edges. Includes public activity; no session tokens or direct-query telemetry."""
+        """Get resource and indexed-agent/card/skill/bundle/interface nodes, public sessions and observed discovery edges. Includes public activity; no session tokens or direct-query telemetry."""
         return agents.graph_view(catalog.graph_view())
 
     @mcp.tool(annotations=ANNOUNCE)

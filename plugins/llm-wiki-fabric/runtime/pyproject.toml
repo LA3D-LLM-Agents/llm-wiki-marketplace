@@ -16,6 +16,7 @@ dependencies = [
   "psycopg[binary]>=3.2,<4",
   "sqlglot>=28,<29",
   "pyshacl==0.40.1",
+  "jsonschema>=4.18,<5",
 ]
 
 [project.scripts]

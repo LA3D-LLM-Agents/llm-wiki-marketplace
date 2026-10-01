@@ -1,4 +1,4 @@
-"""Metadata-only mapping to pinned eco 0.2.0. No domain ontology imports or data queries."""
+"""Metadata-only mapping to pinned eco 0.3.0. No domain ontology imports or data queries."""
 
 import hashlib
 from functools import lru_cache
@@ -6,15 +6,15 @@ from pathlib import Path
 from urllib.parse import quote
 
 from pyshacl import validate
-from rdflib import DCAT, DCTERMS, RDF, RDFS, XSD, Graph, URIRef
+from rdflib import DCAT, DCTERMS, OWL, RDF, RDFS, XSD, Graph, URIRef
 from rdflib import Literal as Term
 
 from .catalog import BASE, ECO, FAB, FabricError
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 PINS = {
-    "eco.ttl": "b3e2263425c99758515980ad0f71737991882f72771ed064c0b5303b3304a70a",
-    "eco-discovery-shapes.ttl": "2a45a1ce3ef23f04fc3570438a120d61d2156b1d94ca2de9e167b6ad10b6a8ea",
+    "eco.ttl": "ebaef2e8391b26d40ca3b453d5856f3183f493d48b0493641933080da030d4ba",
+    "eco-discovery-shapes.ttl": "e32e8872c22130b0d8341d1e7dd438d947a7cd2d6081a9541c514d16a4ffc5be",
 }
 
 
@@ -31,6 +31,7 @@ def build_graph(resources, public):
         details = {
             "consumption_mode": "direct-access",
             "services": [],
+            "cards": [],
             "semantic_entrypoints": [],
             "access_requirements": [],
             "capability_status": "advertised; not a grant or a guarantee of connector support",
@@ -91,6 +92,21 @@ def build_graph(resources, public):
         graph.add((primary, ECO.transport, Term(transport)))
         for service in resource.services:
             endpoint = URIRef(f"{node}:service:advertised:{quote(service.id, safe='')}")
+            if service.kind == "AgentCard":
+                # PAD explicitly advertises an agent card for this connector.
+                # Its resource identity may legitimately have both roles.
+                graph.add((node, RDF.type, ECO.Agent))
+                graph.add((node, DCTERMS.identifier, Term(resource.publisher_id or resource.id)))
+                graph.add((node, ECO.hasCard, endpoint))
+                graph.add((endpoint, RDF.type, ECO.AgentCard))
+                graph.add((endpoint, RDFS.label, Term("Agent card")))
+                graph.add((endpoint, ECO.documentURL, Term(service.url, datatype=XSD.anyURI)))
+                graph.add((endpoint, DCTERMS.format, Term("application/json")))
+                graph.add((endpoint, DCTERMS.hasVersion, Term(service.version or "unspecified")))
+                details["cards"].append(
+                    {"id": str(endpoint), "kind": "AgentCard", "url": service.url}
+                )
+                continue
             graph.add((node, ECO.hasService, endpoint))
             graph.add((endpoint, RDFS.label, Term(service.kind)))
             graph.add((endpoint, RDF.type, ECO[service.kind]))
@@ -177,7 +193,7 @@ def build_graph(resources, public):
                 graph.add((requirement, ECO.accessMechanism, ECO[mechanism]))
                 graph.add((requirement, ECO.accessTarget, Term(target)))
                 details["access_requirements"].append({"mechanism": mechanism, "target": target})
-    return graph, discovery
+    return materialize_inverses(graph), discovery
 
 
 @lru_cache(maxsize=1)
@@ -190,6 +206,22 @@ def pinned_sources():
             raise FabricError("ontology_pin_mismatch", "Bundled discovery ontology hash mismatch")
         sources[name] = raw.decode()
     return sources
+
+
+def materialize_inverses(graph):
+    """Expand declared inverse pairs on a copy; no OWL imports or network."""
+    result = Graph()
+    for prefix, namespace in graph.namespaces():
+        result.bind(prefix, namespace)
+    for triple in graph:
+        result.add(triple)
+    ontology = Graph().parse(data=pinned_sources()["eco.ttl"], format="turtle")
+    for forward, reverse in ontology.subject_objects(OWL.inverseOf):
+        for subject, obj in list(result.subject_objects(forward)):
+            result.add((obj, reverse, subject))
+        for subject, obj in list(result.subject_objects(reverse)):
+            result.add((obj, forward, subject))
+    return result
 
 
 def validate_graph(graph):
@@ -213,9 +245,9 @@ def validate_graph(graph):
         )
     return {
         "version": VERSION,
-        "url": "https://la3d-llm-agents.github.io/ns/versions/0.2.0/eco.ttl",
+        "url": "https://la3d-llm-agents.github.io/ns/versions/0.3.0/eco.ttl",
         "sha256": PINS["eco.ttl"],
         "shapes_sha256": PINS["eco-discovery-shapes.ttl"],
         "validation": "conforms",
-        "scope": "resource discovery metadata; no source ontology imported",
+        "scope": "resource and agent discovery metadata; no source ontology imported",
     }

@@ -74,6 +74,7 @@ class PublishedService(StrictModel):
     id: Identifier
     kind: Literal["AgentCard", "OpenAPI"]
     url: str
+    version: str | None = Field(default=None, min_length=1, max_length=100)
 
     @model_validator(mode="after")
     def safe_url(self):
@@ -128,7 +129,7 @@ class Resource(StrictModel):
 
 class CatalogConfig(StrictModel):
     schema_version: Literal[1, 2]
-    ontology_version: Literal["0.2.0"] = "0.2.0"
+    ontology_version: Literal["0.2.0", "0.3.0"] = "0.3.0"
     resources: list[Resource] = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -266,6 +267,7 @@ class Catalog:
     def public_config(self):
         config = self.config.model_dump()
         config["schema_version"] = 2
+        config["ontology_version"] = "0.3.0"
         for resource in config["resources"]:
             connection = resource["connection"]
             if connection["kind"] == "postgresql":
@@ -319,6 +321,7 @@ class Catalog:
                 )
             for relation, node_type in [
                 (ECO.hasService, "service"),
+                (ECO.hasCard, "card"),
                 (ECO.hasSemanticEntrypoint, "semantic_entrypoint"),
                 (ECO.requiresAccess, "access_requirement"),
             ]:

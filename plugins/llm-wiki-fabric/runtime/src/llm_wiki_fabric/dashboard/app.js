@@ -126,6 +126,11 @@ function renderDetails() {
     const serviceFields = el('dl');
     for (const service of discovery.services) field(serviceFields, `${service.kind}${service.transport ? ' · ' + service.transport : ''}`, service.url || service.binding, Boolean(service.url));
     services.append(serviceFields); container.append(services);
+    if (discovery.cards?.length) {
+      const cards = el('dl');
+      for (const card of discovery.cards) field(cards, 'Agent card document', card.url, true);
+      container.append(cards);
+    }
   }
   const details = el('details'); details.append(el('summary', 'Published descriptor & permissions'), el('pre', JSON.stringify(resource, null, 2))); container.append(details);
 }
@@ -148,12 +153,12 @@ function applyFilters() {
   if (cy) {
     cy.batch(() => {
       cy.elements().removeClass('filtered');
-      cy.nodes().filter(n => n.data('type') !== 'agent' && !ids.has(n.data('resource_id'))).addClass('filtered');
+      cy.nodes().filter(n => !n.data('agent_id') && !ids.has(n.data('resource_id'))).addClass('filtered');
       cy.edges().filter(e => e.source().hasClass('filtered') || e.target().hasClass('filtered')).addClass('filtered');
     });
     if (resources.length) cy.fit(cy.elements().not('.filtered'), 55);
   }
-  $('graph-message').hidden = resources.length > 0 || (graph.activity?.agents.length || 0) > 0;
+  $('graph-message').hidden = resources.length > 0 || graph.nodes.some(n => n.data.type === 'agent');
   $('graph-message').textContent = 'No resources match these filters.';
   if (!ids.has(selected)) selected = resources[0]?.id;
   if (selectedAgent) selectAgent(selectedAgent); else selectResource(selected);
@@ -173,7 +178,7 @@ function renderGraph() {
     ],
     layout:{name:'cose', animate:false, nodeDimensionsIncludeLabels:true, nodeRepulsion:() => 16000, idealEdgeLength:() => 110, componentSpacing:100, padding:55, numIter:1000}
   });
-  cy.on('tap', 'node', event => event.target.data('type') === 'agent' ? selectAgent(event.target.data('agent_id')) : selectResource(event.target.data('resource_id')));
+  cy.on('tap', 'node', event => event.target.data('agent_id') ? selectAgent(event.target.data('agent_id')) : selectResource(event.target.data('resource_id')));
 }
 function selectAgent(id) {
   selectedAgent = id; selected = undefined;
@@ -186,17 +191,18 @@ function selectAgent(id) {
   renderDetails();
 }
 function renderAgentDetails(container) {
-  const agent = graph?.activity?.agents.find(a => a.id === selectedAgent);
+  const indexed = graph?.federation?.entries.find(a => a.id === selectedAgent);
+  const agent = graph?.activity?.agents.find(a => a.id === selectedAgent) || (indexed && {id: indexed.id, metadata: indexed, card_url: indexed.card_url, federation_membership: 'listed', federation: graph.federation, sessions: [], discoveries: {}});
   if (!agent) { container.append(el('p', 'This announcement has expired. Select another node.', 'empty')); return; }
   container.append(el('span', 'PROJECT AGENT', 'tag'), el('h3', agent.id));
   if (agent.metadata?.description) container.append(el('p', agent.metadata.description, 'description'));
   const fields = el('dl');
-  field(fields, 'Federation membership at announcement', agent.federation_membership);
+  field(fields, agent.last_seen ? 'Federation membership at announcement' : 'Federation membership', agent.federation_membership);
   field(fields, 'Caller identity', 'Unverified');
   field(fields, 'Card', agent.card_url, true);
   field(fields, 'Index source', agent.federation.source, true);
   field(fields, 'Index freshness at view load', agent.federation.state);
-  field(fields, 'Last seen', new Date(agent.last_seen * 1000).toLocaleString());
+  field(fields, 'Last seen', agent.last_seen ? new Date(agent.last_seen * 1000).toLocaleString() : 'No retained announcement');
   field(fields, 'Sessions retained', agent.sessions.length);
   container.append(fields);
   if (agent.metadata?.capabilities?.length) {

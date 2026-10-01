@@ -19,9 +19,9 @@
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
 <https://la3d-llm-agents.github.io/ns/eco> a owl:Ontology ;
-    owl:versionIRI <https://la3d-llm-agents.github.io/ns/versions/0.2.0/eco.ttl> ;
-    owl:versionInfo "0.2.0" ;
-    dct:modified "2026-09-24"^^xsd:date ;
+    owl:versionIRI <https://la3d-llm-agents.github.io/ns/versions/0.3.0/eco.ttl> ;
+    owl:versionInfo "0.3.0" ;
+    dct:modified "2026-09-25"^^xsd:date ;
     rdfs:label "Ecosystem structural upper ontology (eco)" ;
     rdfs:comment "A thin structural upper ontology composing PROV-O, DCAT and SKOS. Shape, not meaning." .
 
@@ -31,7 +31,7 @@
 
 eco:Participant a owl:Class ;
     rdfs:label "Participant" ;
-    rdfs:comment "An identified participant in the fabric: a connector, a bundle, or a federation. Stable IRIs are required by discovery profiles; a publisher DID and its verification are separate metadata, not automatically the identity of every hosted resource." .
+    rdfs:comment "An identified participant in the fabric: an agent, a connector, a bundle, or a federation. Stable IRIs are required by discovery profiles; a publisher DID and its verification are separate metadata, not automatically the identity of every hosted resource." .
 
 eco:Connector a owl:Class ;
     rdfs:subClassOf eco:Participant , dcat:DataService ;
@@ -62,7 +62,7 @@ eco:ServiceEndpoint a owl:Class ;
     rdfs:comment "An advertised service endpoint or client-side invocation binding. It may be described by a DID document or resource descriptor; its advertisement does not prove caller authorization or availability." .
 eco:CloneEndpoint a owl:Class ; rdfs:subClassOf eco:ServiceEndpoint ; rdfs:label "Clone endpoint" ;
     rdfs:comment "git clone target — how an ask reaches a bundle (no live infra)." .
-eco:AgentCard    a owl:Class ; rdfs:subClassOf eco:ServiceEndpoint ; rdfs:label "A2A agent-card" ;
+eco:AgentCard    a owl:Class ; rdfs:subClassOf prov:Entity ; rdfs:label "Agent card document" ;
     rdfs:comment "A capability advertisement, including a JSON agent card or a Markdown/YAML wiki card. Its format and location do not establish a live callable A2A endpoint." .
 eco:OpenAPI      a owl:Class ; rdfs:subClassOf eco:ServiceEndpoint ; rdfs:label "OpenAPI contract" .
 
@@ -211,8 +211,8 @@ eco:hasSemanticEntrypoint a owl:ObjectProperty ;
     rdfs:domain eco:Participant ; rdfs:range eco:SemanticEntrypoint ;
     rdfs:label "has semantic entrypoint" .
 eco:documentURL a owl:DatatypeProperty ;
-    rdfs:domain eco:SemanticEntrypoint ; rdfs:range xsd:anyURI ;
-    rdfs:label "semantic document URL" .
+    rdfs:range xsd:anyURI ;
+    rdfs:label "document URL" .
 eco:toolName a owl:DatatypeProperty ;
     rdfs:domain eco:SemanticEntrypoint ; rdfs:range xsd:string ;
     rdfs:label "semantic tool name" ;
@@ -253,3 +253,66 @@ eco:accessTarget a owl:DatatypeProperty ;
     rdfs:domain eco:AccessRequirement ; rdfs:range xsd:string ;
     rdfs:label "access target" ;
     rdfs:comment "Public host/database identifier identifying where the prerequisite applies. Never a password, token, key, connection secret or credential-bearing URL." .
+
+
+########################################################################
+## Agent-card model (0.3.0)
+########################################################################
+
+eco:Agent a owl:Class ; rdfs:subClassOf eco:Participant, prov:SoftwareAgent ;
+    rdfs:label "Agent" ;
+    rdfs:comment "Persistent advertised software-agent identity, independent of its card publication location and any particular running session. Not automatically a wiki Bundle or source Connector." .
+eco:AgentSession a owl:Class ; rdfs:subClassOf prov:Activity ;
+    rdfs:label "Agent session" ;
+    rdfs:comment "A bounded execution or announcement context associated with an agent. This relationship alone establishes neither authenticated ownership nor current liveness." .
+eco:A2AEndpoint a owl:Class ; rdfs:subClassOf eco:ServiceEndpoint ;
+    rdfs:label "Advertised A2A task endpoint" ;
+    rdfs:comment "An explicitly advertised interface for A2A task invocation, not the card retrieval URL. This structural class alone does not certify protocol conformance or availability." .
+eco:hasCard a owl:ObjectProperty ;
+    rdfs:domain eco:Agent ; rdfs:range eco:AgentCard ;
+    owl:inverseOf eco:describesAgent ; rdfs:label "has card" .
+eco:describesAgent a owl:ObjectProperty ;
+    rdfs:domain eco:AgentCard ; rdfs:range eco:Agent ; rdfs:label "describes agent" .
+eco:hasKnowledgeBundle a owl:ObjectProperty ;
+    rdfs:domain eco:Agent ; rdfs:range eco:Bundle ;
+    owl:inverseOf eco:knowledgeBundleOf ; rdfs:label "has knowledge bundle" ;
+    rdfs:comment "Knowledge published for this agent; not an ownership, identity or caller authorization assertion." .
+eco:knowledgeBundleOf a owl:ObjectProperty ;
+    rdfs:domain eco:Bundle ; rdfs:range eco:Agent ; rdfs:label "knowledge bundle of" .
+eco:sessionOfAgent a owl:ObjectProperty ;
+    rdfs:domain eco:AgentSession ; rdfs:range eco:Agent ;
+    owl:inverseOf eco:hasSession ; rdfs:label "session of agent" .
+eco:hasSession a owl:ObjectProperty ;
+    rdfs:domain eco:Agent ; rdfs:range eco:AgentSession ; rdfs:label "has session" .
+
+eco:memberOf owl:inverseOf eco:hasMember .
+eco:hasMember a owl:ObjectProperty ; rdfs:domain eco:Federation ; rdfs:range eco:Participant ; rdfs:label "hasMember" .
+
+eco:hasService owl:inverseOf eco:serviceOf .
+eco:serviceOf a owl:ObjectProperty ; rdfs:domain eco:ServiceEndpoint ; rdfs:range eco:Participant ; rdfs:label "serviceOf" .
+
+eco:hasOntology owl:inverseOf eco:ontologyOf .
+eco:ontologyOf a owl:ObjectProperty ; rdfs:domain eco:Ontology ; rdfs:range eco:Participant ; rdfs:label "ontologyOf" .
+
+eco:hasSemanticEntrypoint owl:inverseOf eco:semanticEntrypointOf .
+eco:semanticEntrypointOf a owl:ObjectProperty ; rdfs:domain eco:SemanticEntrypoint ; rdfs:range eco:Participant ; rdfs:label "semanticEntrypointOf" .
+
+eco:requiresAccess owl:inverseOf eco:requiredFor .
+eco:requiredFor a owl:ObjectProperty ; rdfs:domain eco:AccessRequirement ; rdfs:range eco:Participant ; rdfs:label "requiredFor" .
+
+eco:invokedThrough owl:inverseOf eco:exposesSemanticEntrypoint .
+eco:exposesSemanticEntrypoint a owl:ObjectProperty ; rdfs:domain eco:MCPEndpoint ; rdfs:range eco:SemanticEntrypoint ; rdfs:label "exposesSemanticEntrypoint" .
+
+eco:filedInto owl:inverseOf eco:containsAnswer .
+eco:containsAnswer a owl:ObjectProperty ; rdfs:domain eco:Bundle ; rdfs:range eco:Answer ; rdfs:label "containsAnswer" .
+
+eco:reachableVia owl:inverseOf eco:providesRouteTo .
+eco:providesRouteTo a owl:ObjectProperty ; rdfs:domain eco:Broker ; rdfs:range eco:Connector ; rdfs:label "providesRouteTo" .
+
+eco:requiresCredential owl:inverseOf eco:credentialRequiredBy .
+eco:credentialRequiredBy a owl:ObjectProperty ; rdfs:domain eco:CredentialRequirement ; rdfs:range eco:Capability ; rdfs:label "credentialRequiredBy" .
+
+eco:trustedIssuer owl:inverseOf eco:trustedForRequirement .
+eco:trustedForRequirement a owl:ObjectProperty ; rdfs:domain eco:CredentialIssuer ; rdfs:range eco:CredentialRequirement ; rdfs:label "trustedForRequirement" .
+
+eco:ontologyOf rdfs:subPropertyOf eco:semanticEntrypointOf .

@@ -34,37 +34,20 @@ def fetch_federation():
     data = json.loads(body)
     if not isinstance(data, dict) or not isinstance(data.get("agents"), list):
         raise ValueError("Invalid federation index")
+    if data.get("schema_version") not in (None, "0.1.0", "0.2.0", "0.3.0"):
+        raise ValueError("Unsupported federation index version")
     if len(data["agents"]) > 5000:
         raise ValueError("Too many federation entries")
+    from .agent_cards import federation_graph, normalize_entry
+
     entries = {}
     for item in data["agents"]:
-        agent_id = item["id"]
-        validate_identity(agent_id, item["card_url"])
-        if agent_id in entries:
+        metadata = normalize_entry(item)
+        if metadata["id"] in entries:
             raise ValueError("Duplicate federation identity")
-        metadata = {
-            key: item.get(key)
-            for key in (
-                "id",
-                "owner_repo",
-                "description",
-                "card_url",
-                "home_url",
-                "topics",
-                "capabilities",
-            )
-        }
-        if not isinstance(metadata["description"], str) or len(metadata["description"]) > 4000:
-            raise ValueError("Invalid description")
-        for key in ("topics", "capabilities"):
-            values = metadata[key]
-            if (
-                not isinstance(values, list)
-                or len(values) > 100
-                or any(not isinstance(v, str) or len(v) > 1000 for v in values)
-            ):
-                raise ValueError("Invalid agent metadata")
-        entries[agent_id] = metadata
+        entries[metadata["id"]] = metadata
+    # A malformed candidate never replaces the registry's previous valid cache.
+    federation_graph(entries)
     return {"generated_at": data.get("generated_at"), "entries": entries}
 
 
@@ -296,38 +279,110 @@ class AgentRegistry:
                 "federation": {**freshness, "generated_at": data.get("generated_at")},
             }
 
+    def rdf_graph(self, resource_graph=None):
+        """Canonical agent/card/session graph, optionally combined with resource RDF."""
+        from .agent_cards import federation_graph
+        from .discovery_graph import validate_graph
+
+        with self.lock, self.db:
+            data, _ = self._federation(refresh=True)
+            activity = self.snapshot()
+            result = federation_graph(data["entries"], activity["agents"])
+        if resource_graph is not None:
+            result += resource_graph
+            validate_graph(result)
+        return result
+
     def graph_view(self, graph):
-        activity = self.snapshot()
+        from rdflib import RDF, RDFS
+
+        from .agent_cards import agent_node, federation_graph
+        from .catalog import ECO
+
+        with self.lock, self.db:
+            data, freshness = self._federation(refresh=True)
+            activity = self.snapshot()
+            rdf = federation_graph(data["entries"], activity["agents"])
         resources = {
             n["data"]["resource_id"]: n["data"]["id"]
             for n in graph["nodes"]
             if n["data"]["type"] == "resource"
         }
-        for agent in activity["agents"]:
-            node_id = "urn:fabric:agent:" + quote(agent["id"], safe="")
-            graph["nodes"].append(
-                {
+        # Only forward predicates are projected, even though RDF holds both directions.
+        relations = (
+            ECO.hasCard,
+            ECO.hasCapability,
+            ECO.hasKnowledgeBundle,
+            ECO.hasService,
+            ECO.hasSession,
+        )
+        types = (
+            (ECO.Agent, "agent"),
+            (ECO.AgentCard, "card"),
+            (ECO.Capability, "capability"),
+            (ECO.Bundle, "bundle"),
+            (ECO.CloneEndpoint, "service"),
+            (ECO.MCPEndpoint, "service"),
+            (ECO.A2AEndpoint, "service"),
+            (ECO.AgentSession, "session"),
+        )
+        owners = {}
+        for agent_id in sorted(set(data["entries"]) | {a["id"] for a in activity["agents"]}):
+            node = agent_node(agent_id)
+            owners[node] = agent_id
+            for relation in relations:
+                for target in rdf.objects(node, relation):
+                    owners.setdefault(target, agent_id)
+        nodes = {n["data"]["id"]: n for n in graph["nodes"]}
+        edges = {e["data"]["id"]: e for e in graph["edges"]}
+        for rdf_type, node_type in types:
+            for node in sorted(rdf.subjects(RDF.type, rdf_type), key=str):
+                nodes.setdefault(
+                    str(node),
+                    {
+                        "data": {
+                            "id": str(node),
+                            "type": node_type,
+                            "label": str(rdf.value(node, RDFS.label) or node),
+                            "agent_id": owners.get(node),
+                        }
+                    },
+                )
+        for relation in relations:
+            for source, target in sorted(
+                rdf.subject_objects(relation), key=lambda t: tuple(map(str, t))
+            ):
+                edge_id = f"{source}:{relation}:{target}"
+                edges[edge_id] = {
                     "data": {
-                        "id": node_id,
-                        "type": "agent",
-                        "agent_id": agent["id"],
-                        "label": agent["id"],
-                        "last_seen": agent["last_seen"],
+                        "id": edge_id,
+                        "source": str(source),
+                        "target": str(target),
+                        "predicate": str(relation),
+                        "label": str(relation).split("#")[-1],
                     }
                 }
-            )
+        for agent in activity["agents"]:
+            node_id = str(agent_node(agent["id"]))
+            nodes[node_id]["data"]["last_seen"] = agent["last_seen"]
             for resource, seen in agent["discoveries"].items():
                 if resource in resources:
-                    graph["edges"].append(
-                        {
-                            "data": {
-                                "id": node_id + ":discovered:" + quote(resource, safe=""),
-                                "source": node_id,
-                                "target": resources[resource],
-                                "type": "discovered",
-                                "label": "discovered",
-                                "last_seen": seen,
-                            }
+                    edge_id = node_id + ":discovered:" + quote(resource, safe="")
+                    edges[edge_id] = {
+                        "data": {
+                            "id": edge_id,
+                            "source": node_id,
+                            "target": resources[resource],
+                            "type": "discovered",
+                            "label": "discovered",
+                            "last_seen": seen,
                         }
-                    )
-        return {**graph, "activity": activity}
+                    }
+        return {
+            **graph,
+            "nodes": list(nodes.values()),
+            "edges": list(edges.values()),
+            "activity": activity,
+            "federation": {**freshness, "entries": list(data["entries"].values())},
+            "projection": "Resource and federation agent/card/skill/bundle/interface metadata, public sessions and observed discovery; inverse edges omitted.",
+        }
